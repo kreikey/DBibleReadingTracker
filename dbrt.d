@@ -175,12 +175,17 @@ struct ReadingSection {
   ulong[] bookIds;
   ulong chSum;
   int chPerDay;
+  int chaptersRead;
+  int daysRead;
   
-  this(BookRange[] bookRangeList) {
+  this(BookRange[] bookRangeList, int _chPerDay, int _chaptersRead) {
     foreach (bookRange; bookRangeList)
       bookIds ~= iota(idByBook[bookRange.start], idByBook[bookRange.end] + 1).array();
     
     chSum = bookIds.map!(a => chapters[a]).sum();
+    chPerDay = _chPerDay;
+    chaptersRead = _chaptersRead;
+    daysRead = chaptersRead / chPerDay;
   } 
 
   string decodeChapterID(int index) {
@@ -223,7 +228,11 @@ struct ReadingSection {
 }
 
 void main(string[] args) {
-  int daysRead = args[1].to!int;
+  if (args.length < 3) {
+    throw new Exception("I need 2 arguments for chapters read, one for each incomplete section");
+  }
+
+  int[] chaptersRead = args[1 .. $].to!(int[]);
 
   // Read in the chunk of text
   string[] text = stdin.byLineCopy.array();
@@ -238,7 +247,7 @@ void main(string[] args) {
   string* dateModified = &dateRow[1];
   
   // Process the lines we want into CSV ranges
-  auto sectionRecordsRange = csvReader!SectionSpec(text[4 .. 7].join("\n"), null, '\t');
+  auto sectionRecordsRange = csvReader!SectionSpec(text[4 .. $ - 2].join("\n"), null, '\t');
 
   // Extract headers
   string[] sectionHeader = sectionRecordsRange.header;
@@ -246,9 +255,12 @@ void main(string[] args) {
   // Turn ranges into arrays
   SectionSpec[] sectionRecords = sectionRecordsRange.array();
 
+  //writeln(sectionRecords);
+
   // Pick out the records we want
-  SectionSpec* newTest = &sectionRecords.find!((a, b) => a.section == b)("New Testament")[0];
   SectionSpec* oldTest = &sectionRecords.find!((a, b) => a.section == b)("Old Testament")[0];
+  SectionSpec* newTest = &sectionRecords.find!((a, b) => a.section == b)("New Testament")[0];
+  SectionSpec* Psalms = &sectionRecords.find!((a, b) => a.section == b)("Psalms")[0];
 
   // Get dates and days elapsed
   Date lastModDate = (*dateModified).fromShortHRStringToDate();
@@ -256,17 +268,21 @@ void main(string[] args) {
   long daysElapsed = (todaysDate - lastModDate).total!"days";
 
   // Initialize Reading Sections
-  ReadingSection NTSection = ReadingSection([ BookRange("Matthew", "Revelation") ]);
-  NTSection.chPerDay = 1;
+  ReadingSection NTSection = ReadingSection([ BookRange("Matthew", "Revelation") ],
+                                            1, 0);
   ReadingSection OTSection = ReadingSection([ BookRange("Genesis", "Job"),
-      BookRange("Ecclesiastes", "Malachi") ]);
-  OTSection.chPerDay = 2;
+                                              BookRange("Ecclesiastes", "Malachi") ],
+                                            2, chaptersRead[0]);
+  ReadingSection PsSection = ReadingSection([ BookRange("Psalms", "Psalms") ],
+                                            1, chaptersRead[1]);
 
   // Update table with days read
-  updateSection(NTSection, newTest, daysElapsed, daysRead);
-  updateSection(OTSection, oldTest, daysElapsed, daysRead);
+  updateSection(NTSection, newTest, daysElapsed);
+  updateSection(OTSection, oldTest, daysElapsed);
+  updateSection(PsSection, Psalms, daysElapsed);
   *dateModified = todaysDate.toShortHRString();
 
+  // write updated table along with related information
   writeln(title);
   writeln(headSeparator);
   writeln(dateRow.join(" "));
@@ -278,10 +294,10 @@ void main(string[] args) {
     }
   }
   writeln(mainSeparator);
-  writefln("last update: completed %s days worth of reading in %s days", daysRead, daysElapsed);
+  writefln("last update: completed %s, %s, and  days worth of reading for each section in %s days", NTSection.daysRead, OTSection.daysRead, daysElapsed);
 }
 
-void updateSection(ReadingSection section, SectionSpec* spec, long daysElapsed, ulong daysRead) {
+void updateSection(ReadingSection section, SectionSpec* spec, long daysElapsed) {
   int targetId, currentId;
 
   targetId = section.encodeChapterId(spec.target);
@@ -289,7 +305,7 @@ void updateSection(ReadingSection section, SectionSpec* spec, long daysElapsed, 
   targetId += daysElapsed * section.chPerDay;
   if (targetId > section.chSum)
     targetId = cast(int)section.chSum;
-  currentId += daysRead * section.chPerDay;
+  currentId += section.chaptersRead;
   if (currentId > section.chSum)
     currentId = cast(int)section.chSum;
   spec.chaptsBehind = targetId - currentId;
