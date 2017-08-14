@@ -8,7 +8,6 @@ import std.algorithm;
 import std.csv;
 import std.typecons;
 import std.conv;
-import std.regex;
 import std.string;
 import std.range;
 import std.traits;
