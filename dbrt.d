@@ -83,74 +83,74 @@ enum BibleBook
   Revelation
 }
 
-//string[] books = [
-  //"Genesis",
-  //"Exodus",
-  //"Leviticus",
-  //"Numbers",
-  //"Deuteronomy",
-  //"Joshua",
-  //"Judges",
-  //"Ruth",
-  //"1 Samuel",
-  //"2 Samuel",
-  //"1 Kings",
-  //"2 Kings",
-  //"1 Chronicles",
-  //"2 Chronicles",
-  //"Ezra",
-  //"Nehemiah",
-  //"Esther",
-  //"Job",
-  //"Psalms",
-  //"Proverbs",
-  //"Ecclesiastes",
-  //"Song of Songs",
-  //"Isaiah",
-  //"Jeremiah",
-  //"Lamentations",
-  //"Ezekiel",
-  //"Daniel",
-  //"Hosea",
-  //"Joel",
-  //"Amos",
-  //"Obadiah",
-  //"Jonah",
-  //"Micah",
-  //"Nahum",
-  //"Habakkuk",
-  //"Zephaniah",
-  //"Haggai",
-  //"Zechariah",
-  //"Malachi",
-  //"Matthew",
-  //"Mark",
-  //"Luke",
-  //"John",
-  //"Acts",
-  //"Romans",
-  //"1 Corinthians",
-  //"2 Corinthians",
-  //"Galatians",
-  //"Ephesians",
-  //"Philippians",
-  //"Colossians",
-  //"1 Thessalonians",
-  //"2 Thessalonians",
-  //"1 Timothy",
-  //"2 Timothy",
-  //"Titus",
-  //"Philemon",
-  //"Hebrews",
-  //"James",
-  //"1 Peter",
-  //"2 Peter",
-  //"1 John",
-  //"2 John",
-  //"3 John",
-  //"Jude",
-  //"Revelation"
-//];
+string[] books = [
+  "Genesis",
+  "Exodus",
+  "Leviticus",
+  "Numbers",
+  "Deuteronomy",
+  "Joshua",
+  "Judges",
+  "Ruth",
+  "1 Samuel",
+  "2 Samuel",
+  "1 Kings",
+  "2 Kings",
+  "1 Chronicles",
+  "2 Chronicles",
+  "Ezra",
+  "Nehemiah",
+  "Esther",
+  "Job",
+  "Psalms",
+  "Proverbs",
+  "Ecclesiastes",
+  "Song of Songs",
+  "Isaiah",
+  "Jeremiah",
+  "Lamentations",
+  "Ezekiel",
+  "Daniel",
+  "Hosea",
+  "Joel",
+  "Amos",
+  "Obadiah",
+  "Jonah",
+  "Micah",
+  "Nahum",
+  "Habakkuk",
+  "Zephaniah",
+  "Haggai",
+  "Zechariah",
+  "Malachi",
+  "Matthew",
+  "Mark",
+  "Luke",
+  "John",
+  "Acts",
+  "Romans",
+  "1 Corinthians",
+  "2 Corinthians",
+  "Galatians",
+  "Ephesians",
+  "Philippians",
+  "Colossians",
+  "1 Thessalonians",
+  "2 Thessalonians",
+  "1 Timothy",
+  "2 Timothy",
+  "Titus",
+  "Philemon",
+  "Hebrews",
+  "James",
+  "1 Peter",
+  "2 Peter",
+  "1 John",
+  "2 John",
+  "3 John",
+  "Jude",
+  "Revelation"
+];
 
 int[] chapters = [
   50,
@@ -265,8 +265,8 @@ struct ReadingSection {
     string[] parts;
 
     parts = bookAndChapter.split(" ").array();
-    bookName = parts[0];
-    chapter = parts[1].to!int;
+    bookName = parts[0 .. $ - 1].join(" ");
+    chapter = parts[$ - 1].to!int;
     
     BibleBook b = bookName.toEnum();
 
@@ -329,14 +329,15 @@ void main(string[] args) {
   Date todaysDate = cast(Date)(Clock.currTime());
   long daysElapsed = (todaysDate - lastModDate).total!"days";
 
-  // Update table with days read
+  // Initialize Reading Sections
   ReadingSection NTSection = ReadingSection([ ["Matthew", "Revelation"] ]);
   NTSection.chPerDay = 1;
-  updateSection(NTSection, newTest, daysElapsed, daysRead);
-
   ReadingSection OTSection = ReadingSection([ ["Genesis", "Job"],
                                ["Ecclesiastes", "Malachi"] ]);
   OTSection.chPerDay = 2;
+
+  // Update table with days read
+  updateSection(NTSection, newTest, daysElapsed, daysRead);
   updateSection(OTSection, oldTest, daysElapsed, daysRead);
   *dateModified = todaysDate.toShortHRString();
 
@@ -347,14 +348,14 @@ void main(string[] args) {
   writeln(sectionHeader.join("\t"));
   foreach(record; sectionRecords) {
     with(record) {
-      writefln("%s\t%s\t%s\t%s\t%s", section, current, target, chaptsBehind, daysBehind);
+      writefln("%s\t%s\t%s\t%s\t%s\t%s\t%s", section, current, target, chaptsBehind, daysBehind, progress, percentComplete);
     }
   }
   writeln(mainSeparator);
-  writefln("status: %s days read in %s days", daysRead, daysElapsed);
+  writefln("last update: completed %s days worth of reading in %s days", daysRead, daysElapsed);
 }
 
-void updateSection(ReadingSection section, ref SectionSpec* spec, long daysElapsed, int daysRead) {
+void updateSection(ReadingSection section, SectionSpec* spec, long daysElapsed, int daysRead) {
   int targetId, currentId;
 
   targetId = section.encodeChapterId(spec.target);
@@ -369,6 +370,8 @@ void updateSection(ReadingSection section, ref SectionSpec* spec, long daysElaps
   spec.daysBehind = spec.chaptsBehind / section.chPerDay;
   spec.target = section.decodeChapterID(targetId);
   spec.current = section.decodeChapterID(currentId);
+  spec.progress = format("%s/%s", currentId, section.chSum);
+  spec.percentComplete = format("%.1f %%", (cast(double)currentId / section.chSum * 100));
 }
 
 string toShortHRString(Date someDate)
