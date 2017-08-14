@@ -13,76 +13,6 @@ import std.string;
 import std.range;
 import std.traits;
 
-enum BibleBook
-{
-  Genesis,
-  Exodus,
-  Leviticus,
-  Numbers,
-  Deuteronomy,
-  Joshua,
-  Judges,
-  Ruth,
-  I_Samuel,
-  II_Samuel,
-  I_Kings,
-  II_Kings,
-  I_Chronicles,
-  II_Chronicles,
-  Ezra,
-  Nehemiah,
-  Esther,
-  Job,
-  Psalms,
-  Proverbs,
-  Ecclesiastes,
-  Song_of_Songs,
-  Isaiah,
-  Jeremiah,
-  Lamentations,
-  Ezekiel,
-  Daniel,
-  Hosea,
-  Joel,
-  Amos,
-  Obadiah,
-  Jonah,
-  Micah,
-  Nahum,
-  Habakkuk,
-  Zephaniah,
-  Haggai,
-  Zechariah,
-  Malachi,
-  Matthew,
-  Mark,
-  Luke,
-  John,
-  Acts,
-  Romans,
-  I_Corinthians,
-  II_Corinthians,
-  Galatians,
-  Ephesians,
-  Philippians,
-  Colossians,
-  I_Thessalonians,
-  II_Thessalonians,
-  I_Timothy,
-  II_Timothy,
-  Titus,
-  Philemon,
-  Hebrews,
-  James,
-  I_Peter,
-  II_Peter,
-  I_John,
-  II_John,
-  III_John,
-  Jude,
-  Revelation
-}
-
 string[] books = [
   "Genesis",
   "Exodus",
@@ -152,7 +82,7 @@ string[] books = [
   "Revelation"
 ];
 
-int[] chapters = [
+ulong[] chapters = [
   50,
   40,
   27,
@@ -221,6 +151,17 @@ int[] chapters = [
   22
 ];
 
+immutable ulong[string] idByBook;
+
+static this() {
+  idByBook = cast(immutable)assocArray(zip(books, iota(0, books.length)));
+}
+
+struct BookRange {
+  string start;
+  string end;
+}
+
 struct SectionSpec {
   string section;
   string current;
@@ -232,69 +173,55 @@ struct SectionSpec {
 }
 
 struct ReadingSection {
-  BibleBook[] bookList;
-  int chSum;
+  ulong[] bookIds;
+  ulong chSum;
   int chPerDay;
   
-  this(string[2][] bookRangeList) {
-    foreach (bookPair; bookRangeList) 
-      bookList ~= [EnumMembers!BibleBook][bookPair[0].toEnum .. bookPair[1].toEnum + 1];
-    chSum = bookList.map!(a => chapters[a]).sum();
+  this(BookRange[] bookRangeList) {
+    foreach (bookRange; bookRangeList)
+      bookIds ~= iota(idByBook[bookRange.start], idByBook[bookRange.end] + 1).array();
+    
+    chSum = bookIds.map!(a => chapters[a]).sum();
   } 
 
   string decodeChapterID(int index) {
     int count;
-    int chapter;
-    BibleBook savedBook;
+    ulong chapter;
+    ulong savedId;
 
-    foreach (book; bookList) {
-      count += chapters[book];
+    foreach (bookId; bookIds) {
+      count += chapters[bookId];
       if (count >= index ) {
-        savedBook = book;
-        chapter = chapters[book] - (count - index);
+        savedId = bookId;
+        chapter = chapters[bookId] - (count - index);
         break;
       }
     }
-    return format("%s %d", savedBook.toString, chapter);
+    return format("%s %d", books[savedId], chapter);
   }
 
   int encodeChapterId(string bookAndChapter) {
     string bookName;
     int count;
     int chapter;
-    string[] parts;
+    ulong splitNdx;
 
-    parts = bookAndChapter.split(" ").array();
-    bookName = parts[0 .. $ - 1].join(" ");
-    chapter = parts[$ - 1].to!int;
-    
-    BibleBook b = bookName.toEnum();
+    splitNdx = bookAndChapter.length - 1 - bookAndChapter.retro.indexOf(' ');
+    bookName = bookAndChapter[0 .. splitNdx];
+    chapter = bookAndChapter[splitNdx + 1 .. $].to!int;
 
-    foreach (book; bookList) {
-      if (book == b)
+    ulong bookId = idByBook[bookName];
+
+    foreach (id; bookIds) {
+      if (id == bookId)
         break;
-      count += chapters[book];
+      count += chapters[id];
     }
     
     count += chapter;
     return count;
   }
 }
-
-// The most syntactically simple solution might be 3 data structures:
-// An array of book names,
-// A hashmap of name:index pairs,
-// A hashmap of name:chapters pairs
-// Another option is 2 data structures:
-// An enum of book names
-// An array of chapter counts per book
-// Another option is 2 data structures:
-// A books array with structs of name:chapters pairs
-// A hashmap of name:index pairs (or an enum of book names)
-// Option:
-// Array of book names
-// Array of book chapters
-// Hashmap of names to book index
 
 void main(string[] args) {
   int daysRead = args[1].to!int;
@@ -330,10 +257,10 @@ void main(string[] args) {
   long daysElapsed = (todaysDate - lastModDate).total!"days";
 
   // Initialize Reading Sections
-  ReadingSection NTSection = ReadingSection([ ["Matthew", "Revelation"] ]);
+  ReadingSection NTSection = ReadingSection([ BookRange("Matthew", "Revelation") ]);
   NTSection.chPerDay = 1;
-  ReadingSection OTSection = ReadingSection([ ["Genesis", "Job"],
-                               ["Ecclesiastes", "Malachi"] ]);
+  ReadingSection OTSection = ReadingSection([ BookRange("Genesis", "Job"),
+      BookRange("Ecclesiastes", "Malachi") ]);
   OTSection.chPerDay = 2;
 
   // Update table with days read
@@ -355,17 +282,17 @@ void main(string[] args) {
   writefln("last update: completed %s days worth of reading in %s days", daysRead, daysElapsed);
 }
 
-void updateSection(ReadingSection section, SectionSpec* spec, long daysElapsed, int daysRead) {
+void updateSection(ReadingSection section, SectionSpec* spec, long daysElapsed, ulong daysRead) {
   int targetId, currentId;
 
   targetId = section.encodeChapterId(spec.target);
   currentId = section.encodeChapterId(spec.current);
   targetId += daysElapsed * section.chPerDay;
   if (targetId > section.chSum)
-    targetId = section.chSum;
+    targetId = cast(int)section.chSum;
   currentId += daysRead * section.chPerDay;
   if (currentId > section.chSum)
-    currentId = section.chSum;
+    currentId = cast(int)section.chSum;
   spec.chaptsBehind = targetId - currentId;
   spec.daysBehind = spec.chaptsBehind / section.chPerDay;
   spec.target = section.decodeChapterID(targetId);
@@ -402,32 +329,4 @@ Date fromHRStringToDate(string dateStr)
   mdy ~= m;
   mdy ~= mdyStr[1 .. $].to!(int[]);
   return Date(mdy[2], mdy[0], mdy[1]);
-}
-
-BibleBook toEnum(string bookName) {
-  bookName = bookName.tr(" ", "_");
-  if (bookName[0] == '1')
-    bookName.replaceInPlace(0u, 1u, "I");
-  else if (bookName[0] == '2')
-    bookName.replaceInPlace(0u, 1u, "II");
-  else if (bookName[0] == '3')
-    bookName.replaceInPlace(0u, 1u, "III");
-  return bookName.parse!(BibleBook);
-}
-
-string toString(BibleBook myBook) {
-  string bookName = myBook.to!string;
-
-  if (bookName[0] == 'I') {
-    if (bookName[1] == 'I') {
-      if (bookName[2] == 'I') {
-        bookName.replaceInPlace(0u, 3u, "3");
-      } else {
-        bookName.replaceInPlace(0u, 2u, "2");
-      }
-    } else if (bookName[1] == '_') {
-      bookName.replaceInPlace(0u, 1u, "1");
-    }
-  }
-  return bookName.tr("_", " ");
 }
