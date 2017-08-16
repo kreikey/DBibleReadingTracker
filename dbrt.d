@@ -233,6 +233,10 @@ void main(string[] args) {
   }
 
   int[] chaptersRead = args[1 .. $].to!(int[]);
+  int ndx;
+  int OTChRead;
+  int NTChRead;
+  int PsChRead;
 
   // Read in the chunk of text
   string[] text = stdin.byLineCopy.array();
@@ -262,19 +266,24 @@ void main(string[] args) {
   SectionSpec* newTest = &sectionRecords.find!((a, b) => a.section == b)("New Testament")[0];
   SectionSpec* Psalms = &sectionRecords.find!((a, b) => a.section == b)("Psalms")[0];
 
+  // figure out which sections are active and assign arguments respectively
+  OTChRead = oldTest.isActive() ? chaptersRead[ndx++] : 0;
+  NTChRead = newTest.isActive() ? chaptersRead[ndx++] : 0;
+  PsChRead = Psalms.isActive() ? chaptersRead[ndx++] : 0;
+
   // Get dates and days elapsed
   Date lastModDate = (*dateModified).fromShortHRStringToDate();
   Date todaysDate = cast(Date)(Clock.currTime());
   long daysElapsed = (todaysDate - lastModDate).total!"days";
 
   // Initialize Reading Sections
-  ReadingSection NTSection = ReadingSection([ BookRange("Matthew", "Revelation") ],
-                                            1, 0);
   ReadingSection OTSection = ReadingSection([ BookRange("Genesis", "Job"),
                                               BookRange("Ecclesiastes", "Malachi") ],
-                                            2, chaptersRead[0]);
+                                            2, OTChRead);
+  ReadingSection NTSection = ReadingSection([ BookRange("Matthew", "Revelation") ],
+                                            1, NTChRead);
   ReadingSection PsSection = ReadingSection([ BookRange("Psalms", "Psalms") ],
-                                            1, chaptersRead[1]);
+                                            1, PsChRead);
 
   // Update table with days read
   updateSection(NTSection, newTest, daysElapsed);
@@ -294,7 +303,10 @@ void main(string[] args) {
     }
   }
   writeln(mainSeparator);
-  writefln("last update: completed %s, %s, and  days worth of reading for each section in %s days", NTSection.daysRead, OTSection.daysRead, daysElapsed);
+  write("last update: completed ");
+  writef("%s, ", OTSection.daysRead);
+  writef("%s, ", NTSection.daysRead);
+  writefln("and %s days worth of reading in %s days", PsSection.daysRead, daysElapsed);
 }
 
 void updateSection(ReadingSection section, SectionSpec* spec, long daysElapsed) {
@@ -345,3 +357,16 @@ Date fromHRStringToDate(string dateStr)
   mdy ~= mdyStr[1 .. $].to!(int[]);
   return Date(mdy[2], mdy[0], mdy[1]);
 }
+
+bool isActive(SectionSpec* record) {
+  int current;
+  int total;
+  int[] parts;
+
+  parts = record.progress.split("/").map!(to!int).array();
+  current = parts[0];
+  total = parts[1];
+
+  return (current != total);
+}
+
