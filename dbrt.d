@@ -178,14 +178,14 @@ struct ReadingSection {
   int chaptersRead;
   int daysRead;
   
-  this(BookRange[] bookRangeList, int _chPerDay, int _chaptersRead) {
+  this(BookRange[] bookRangeList, int _chPerDay, int _daysRead) {
     foreach (bookRange; bookRangeList)
       bookIds ~= iota(idByBook[bookRange.start], idByBook[bookRange.end] + 1).array();
     
     chSum = bookIds.map!(a => chapters[a]).sum();
     chPerDay = _chPerDay;
-    chaptersRead = _chaptersRead;
-    daysRead = chaptersRead / chPerDay;
+    chaptersRead = _daysRead * _chPerDay;
+    daysRead = _daysRead;
   } 
 
   string decodeChapterID(int index) {
@@ -232,11 +232,11 @@ void main(string[] args) {
     throw new Exception("I need 2 arguments for chapters read, one for each incomplete section");
   }
 
-  int[] chaptersRead = args[1 .. $].to!(int[]);
+  int[] daysRead = args[1 .. $].to!(int[]);
   int ndx;
-  int OTChRead;
-  int NTChRead;
-  int PsChRead;
+  int OTDaysRead;
+  int NTDaysRead;
+  int PsDaysRead;
 
   // Read in the chunk of text
   string[] text = stdin.byLineCopy.array();
@@ -267,9 +267,9 @@ void main(string[] args) {
   SectionSpec* Psalms = &sectionRecords.find!((a, b) => a.section == b)("Psalms")[0];
 
   // figure out which sections are active and assign arguments respectively
-  OTChRead = oldTest.isActive() ? chaptersRead[ndx++] : 0;
-  NTChRead = newTest.isActive() ? chaptersRead[ndx++] : 0;
-  PsChRead = Psalms.isActive() ? chaptersRead[ndx++] : 0;
+  OTDaysRead = oldTest.isActive() ? daysRead[ndx++] : 0;
+  NTDaysRead = newTest.isActive() ? daysRead[ndx++] : 0;
+  PsDaysRead = Psalms.isActive() ? daysRead[ndx++] : 0;
 
   // Get dates and days elapsed
   Date lastModDate = (*dateModified).fromShortHRStringToDate();
@@ -279,11 +279,11 @@ void main(string[] args) {
   // Initialize Reading Sections
   ReadingSection OTSection = ReadingSection([ BookRange("Genesis", "Job"),
                                               BookRange("Ecclesiastes", "Malachi") ],
-                                            2, OTChRead);
+                                            2, OTDaysRead);
   ReadingSection NTSection = ReadingSection([ BookRange("Matthew", "Revelation") ],
-                                            1, NTChRead);
+                                            1, NTDaysRead);
   ReadingSection PsSection = ReadingSection([ BookRange("Psalms", "Psalms") ],
-                                            1, PsChRead);
+                                            1, PsDaysRead);
 
   // Update table with days read
   updateSection(NTSection, newTest, daysElapsed);
