@@ -228,15 +228,12 @@ struct ReadingSection {
 }
 
 void main(string[] args) {
-  if (args.length < 3) {
-    throw new Exception("I need 2 arguments for chapters read, one for each incomplete section");
+  if (args.length != 2) {
+    throw new Exception("Program takes 1 argument, days worth or reading completed. If you habitually read more than 1 days' worth for a particular section, then initialize it with a different chPerDay value. Because taking many arguments is tedious.");
   }
 
   int[] daysRead = args[1 .. $].to!(int[]);
   int ndx;
-  int OTDaysRead;
-  int NTDaysRead;
-  int PsDaysRead;
 
   // Read in the chunk of text
   string[] text = stdin.byLineCopy.array();
@@ -265,11 +262,26 @@ void main(string[] args) {
   SectionSpec* oldTest = &sectionRecords.find!((a, b) => a.section == b)("Old Testament")[0];
   SectionSpec* newTest = &sectionRecords.find!((a, b) => a.section == b)("New Testament")[0];
   SectionSpec* Psalms = &sectionRecords.find!((a, b) => a.section == b)("Psalms")[0];
+  SectionSpec* Proverbs = &sectionRecords.find!((a, b) => a.section == b)("Proverbs")[0];
 
-  // figure out which sections are active and assign arguments respectively
-  OTDaysRead = oldTest.isActive() ? daysRead[ndx++] : 0;
-  NTDaysRead = newTest.isActive() ? daysRead[ndx++] : 0;
-  PsDaysRead = Psalms.isActive() ? daysRead[ndx++] : 0;
+  int OTDaysRead;
+  int NTDaysRead;
+  int PsDaysRead;
+  int PrDaysRead;
+
+  // The semantics change based on how many arguments we passed
+  if (args.length > 2) {
+    // figure out which sections are active and assign arguments respectively
+    OTDaysRead = oldTest.isActive() ? daysRead[ndx++] : 0;
+    NTDaysRead = newTest.isActive() ? daysRead[ndx++] : 0;
+    PsDaysRead = Psalms.isActive() ? daysRead[ndx++] : 0;
+    PrDaysRead = Proverbs.isActive() ? daysRead[ndx++] : 0;
+  } else {
+    OTDaysRead = daysRead[1];
+    NTDaysRead = daysRead[1];
+    PsDaysRead = daysRead[1];
+    PrDaysRead = daysRead[1];
+  }
 
   // Get dates and days elapsed
   Date lastModDate = (*dateModified).fromShortHRStringToDate();
@@ -279,16 +291,22 @@ void main(string[] args) {
   // Initialize Reading Sections
   ReadingSection OTSection = ReadingSection([ BookRange("Genesis", "Job"),
                                               BookRange("Ecclesiastes", "Malachi") ],
-                                            2, OTDaysRead);
+                                            5, OTDaysRead);
   ReadingSection NTSection = ReadingSection([ BookRange("Matthew", "Revelation") ],
-                                            1, NTDaysRead);
+                                            2, NTDaysRead);
   ReadingSection PsSection = ReadingSection([ BookRange("Psalms", "Psalms") ],
                                             1, PsDaysRead);
-
+  ReadingSection PrSection = ReadingSection([ BookRange("Proverbs", "Proverbs") ],
+                                            1, PrDaysRead);
+  // How do I determine whether to loop around or stop when a ReadingSection is finished (inactive)?
+  // I simply change the progress column, arbitrarily setting one number to be different than the
+  // other one. It's a trick, but it works.
+ 
   // Update table with days read
   updateSection(NTSection, newTest, daysElapsed);
   updateSection(OTSection, oldTest, daysElapsed);
   updateSection(PsSection, Psalms, daysElapsed);
+  updateSection(PrSection, Proverbs, daysElapsed);
   *dateModified = todaysDate.toShortHRString();
 
   // write updated table along with related information
@@ -303,10 +321,7 @@ void main(string[] args) {
     }
   }
   writeln(mainSeparator);
-  write("last update: completed ");
-  writef("%s, ", OTSection.daysRead);
-  writef("%s, ", NTSection.daysRead);
-  writefln("and %s days worth of reading in %s days", PsSection.daysRead, daysElapsed);
+  writefln("last update: completed %s days worth of reading in %s days", PrSection.daysRead, daysElapsed);
 }
 
 void updateSection(ReadingSection section, SectionSpec* spec, long daysElapsed) {
@@ -318,8 +333,10 @@ void updateSection(ReadingSection section, SectionSpec* spec, long daysElapsed) 
   if (targetId > section.chSum)
     targetId = cast(int)section.chSum;
   currentId += section.chaptersRead;
-  if (currentId > section.chSum)
-    currentId = cast(int)section.chSum;
+  if (currentId > section.chSum) {  // Loop the section around and reset the target ID
+    currentId -= cast(int)section.chSum;
+    targetId = section.chPerDay;
+  }
   spec.chaptsBehind = targetId - currentId;
   spec.daysBehind = spec.chaptsBehind / section.chPerDay;
   spec.target = section.decodeChapterID(targetId);
