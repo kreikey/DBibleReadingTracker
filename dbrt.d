@@ -228,10 +228,6 @@ struct ReadingSection {
 }
 
 void main(string[] args) {
-  if (args.length != 2) {
-    throw new Exception("Program takes 1 argument, days worth or reading completed. If you habitually read more than 1 days' worth for a particular section, then initialize it with a different chPerDay value. Because taking many arguments is tedious.");
-  }
-
   int[] daysRead = args[1 .. $].to!(int[]);
   int ndx;
 
@@ -321,7 +317,7 @@ void main(string[] args) {
     }
   }
   writeln(mainSeparator);
-  writefln("last update: completed %s days worth of reading in %s days", PrSection.daysRead, daysElapsed);
+  writefln("last update: completed %s, %s, %s, and %s days worth of reading in %s days", OTSection.daysRead, NTSection.daysRead, PsSection.daysRead, PrSection.daysRead, daysElapsed);
 }
 
 void updateSection(ReadingSection section, SectionSpec* spec, long daysElapsed) {
