@@ -229,6 +229,8 @@ struct ReadingSection {
 
 void main(string[] args) {
   int[] daysRead = args[1 .. $].to!(int[]);
+  writeln(args);
+  writeln(daysRead);
   int ndx;
 
   // Read in the chunk of text
@@ -273,10 +275,11 @@ void main(string[] args) {
     PsDaysRead = Psalms.isActive() ? daysRead[ndx++] : 0;
     PrDaysRead = Proverbs.isActive() ? daysRead[ndx++] : 0;
   } else {
-    OTDaysRead = daysRead[1];
-    NTDaysRead = daysRead[1];
-    PsDaysRead = daysRead[1];
-    PrDaysRead = daysRead[1];
+    writeln("less than 3 arguments, including program name");
+    OTDaysRead = daysRead[0];
+    NTDaysRead = daysRead[0];
+    PsDaysRead = daysRead[0];
+    PrDaysRead = daysRead[0];
   }
 
   // Get dates and days elapsed
