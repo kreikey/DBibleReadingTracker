@@ -229,6 +229,8 @@ struct ReadingSection {
 
 void main(string[] args) {
   int[] daysRead = args[1 .. $].to!(int[]);
+  if (daysRead.length == 0)
+    daysRead ~= 1;
   int ndx;
 
   // Read in the chunk of text
