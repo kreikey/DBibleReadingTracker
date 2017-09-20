@@ -275,10 +275,10 @@ void main(string[] args) {
     PsDaysRead = Psalms.isActive() ? daysRead[ndx++] : 0;
     PrDaysRead = Proverbs.isActive() ? daysRead[ndx++] : 0;
   } else {
-    OTDaysRead = daysRead[0];
-    NTDaysRead = daysRead[0];
-    PsDaysRead = daysRead[0];
-    PrDaysRead = daysRead[0];
+    OTDaysRead = oldTest.isActive() ? daysRead[0] : 0;
+    NTDaysRead = newTest.isActive() ? daysRead[0] : 0;
+    PsDaysRead = Psalms.isActive() ? daysRead[0] : 0;
+    PrDaysRead = Proverbs.isActive() ? daysRead[0] : 0;
   }
 
   // Get dates and days elapsed
@@ -289,7 +289,7 @@ void main(string[] args) {
   // Initialize Reading Sections
   ReadingSection OTSection = ReadingSection([ BookRange("Genesis", "Job"),
                                               BookRange("Ecclesiastes", "Malachi") ],
-                                            5, OTDaysRead);
+                                            6, OTDaysRead);
   ReadingSection NTSection = ReadingSection([ BookRange("Matthew", "Revelation") ],
                                             2, NTDaysRead);
   ReadingSection PsSection = ReadingSection([ BookRange("Psalms", "Psalms") ],
