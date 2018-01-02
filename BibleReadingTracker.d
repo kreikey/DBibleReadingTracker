@@ -335,25 +335,30 @@ void main(string[] args) {
   writefln(" days worth of reading in %s days", daysElapsed);
 }
 
-void updateRecord(ReadingSection section, SectionSpec* spec, long daysElapsed) {
+void updateRecord(ReadingSection section, SectionSpec* record, long daysElapsed) {
   int targetId, currentId;
+  int[] progress;
 
-  targetId = section.encodeChapterId(spec.target);
-  currentId = section.encodeChapterId(spec.current);
-  targetId += daysElapsed * section.chPerDay;
-  if (targetId > section.chSum)
-    targetId = cast(int)section.chSum;
-  currentId += section.chaptersRead;
-  if (currentId > section.chSum) {  // Loop the section around and reset the target ID
-    currentId -= cast(int)section.chSum;
+  progress = record.progress.split("/").map!(to!int).array();
+  if (progress[0] > progress[1]) {  // The condition for resetting progress
+    currentId = section.chPerDay;
     targetId = section.chPerDay;
+  } else {
+    targetId = section.encodeChapterId(record.target);
+    currentId = section.encodeChapterId(record.current);
+    targetId += daysElapsed * section.chPerDay;
+    if (targetId > section.chSum)
+      targetId = cast(int)section.chSum;
+    currentId += section.chaptersRead;
+    if (currentId > section.chSum)
+      currentId = cast(int)section.chSum;
   }
-  spec.chaptsBehind = targetId - currentId;
-  spec.daysBehind = spec.chaptsBehind / section.chPerDay;
-  spec.target = section.decodeChapterID(targetId);
-  spec.current = section.decodeChapterID(currentId);
-  spec.progress = format("%s/%s", currentId, section.chSum);
-  spec.percentComplete = format("%.1f %%", (cast(double)currentId / section.chSum * 100));
+  record.chaptsBehind = targetId - currentId;
+  record.daysBehind = record.chaptsBehind / section.chPerDay;
+  record.target = section.decodeChapterID(targetId);
+  record.current = section.decodeChapterID(currentId);
+  record.progress = format("%s/%s", currentId, section.chSum);
+  record.percentComplete = format("%.1f %%", (cast(double)currentId / section.chSum * 100));
 }
 
 string toShortHRString(Date someDate)
