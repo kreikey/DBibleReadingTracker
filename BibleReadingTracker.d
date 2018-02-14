@@ -7,6 +7,8 @@ import std.csv;
 import std.conv;
 import std.string;
 import std.range;
+import std.typecons;
+import std.format;
 
 string[] books = [
   "Genesis",
@@ -54,8 +56,8 @@ string[] books = [
   "John",
   "Acts",
   "Romans",
-  "1 Corinthians",
-  "2 Corinthians",
+  "1 Corlonghians",
+  "2 Corlonghians",
   "Galatians",
   "Ephesians",
   "Philippians",
@@ -161,73 +163,149 @@ struct SectionSpec {
   string section;
   string current;
   string target;
-  int chaptsBehind;
-  int daysBehind;
+  string behind;
+  string lastRead;
+  string toRead;
   string progress;
-  string percentComplete;
+
+  long[2] getBehind() {
+    string[] parts = behind.split("|");
+    long[2] behindParts = [parts[0].to!long(), parts[1].to!long()];
+    return behindParts;
+  }
+
+  void setBehind(long chapters, long days) {
+    behind = format!"%d|%d"(chapters, days);
+  }
+
+  long[2] getLastRead() {
+    string[] parts = lastRead.split("|");
+    long[2] lastReadParts = [parts[0].to!long(), parts[1].to!long()];
+    return lastReadParts;
+  }
+
+  void setLastRead(long chapters, long days) {
+    lastRead = format!("%d|%d")(chapters, days);
+  }
+
+  long getToRead() {
+    return toRead.to!long();
+  }
+
+  void setToRead(long chToRead) {
+    toRead = chToRead.to!string();
+  }
+
+  long[4] getProgress() {
+    string[] parts = progress.split(" ");
+    string[] leftParts = parts[0].split("/");
+    string[] rightParts = parts[2].split("/");
+    long[4] progressMul = [leftParts[0].to!long(), leftParts[1].to!long(), rightParts[0].to!long(), rightParts[1].to!long()];
+    return progressMul;
+  }
+
+  void setProgress(long chRead, long totalCh, long readThrough, long multiplicity) {
+    float percentage = cast(float)chRead / totalCh * 100;
+    progress = format("%d/%d %.1f%% %d/%d", chRead, totalCh, percentage, readThrough, multiplicity);
+  }
+}
+
+struct DateRowSpec {
+  string lastModDateStr;
+  string startDateStr;
+  string endDateStr;
+  
+  Date getLastModDate() {
+    string datePortion = lastModDateStr.split(" ")[1];
+    return fromShortHRStringToDate(datePortion);
+  }
+
+  void setLastModDate(Date date) {
+    string[] datePieces = lastModDateStr.split(" ");
+    datePieces[1] = date.toShortHRString();
+    lastModDateStr = datePieces.join(" ");
+  }
+
+  Date getStartDate() {
+    string datePortion = startDateStr.split(" ")[1];
+    return fromShortHRStringToDate(datePortion);
+  }
+
+  void setStartDate(Date date) {
+    string[] datePieces = startDateStr.split(" ");
+    datePieces[1] = date.toShortHRString();
+    startDateStr = datePieces.join(" ");
+  }
+
+  Date getEndDate() {
+    string datePortion = endDateStr.split(" ")[1];
+    return fromShortHRStringToDate(datePortion);
+  }
+
+  void setEndDate(Date date) {
+    string[] datePieces = endDateStr.split(" ");
+    datePieces[1] = date.toShortHRString();
+    endDateStr = datePieces.join(" ");
+  }
 }
 
 struct ReadingSection {
-  ulong[] bookIds;
-  ulong chSum;
-  int chPerDay;
-  int chaptersRead;
-  int daysRead;
+  ulong[] bookIDs;
+  ulong totalChapters;
   
-  this(BookRange[] bookRangeList, int _chPerDay, int _daysRead) {
+  this(BookRange[] bookRangeList) {
     foreach (bookRange; bookRangeList)
-      bookIds ~= iota(idByBook[bookRange.start], idByBook[bookRange.end] + 1).array();
+      bookIDs ~= iota(idByBook[bookRange.start], idByBook[bookRange.end] + 1).array();
     
-    chSum = bookIds.map!(a => chapters[a]).sum();
-    chPerDay = _chPerDay;
-    chaptersRead = _daysRead * _chPerDay;
-    daysRead = _daysRead;
+    totalChapters = bookIDs.map!(a => chapters[a]).sum();
   } 
 
-  string decodeChapterID(int index) {
-    int count;
+  string decodeChapterID(long chapterID) {
+    long index;
     ulong chapter;
-    ulong savedId;
+    ulong savedID;
 
-    foreach (bookId; bookIds) {
-      count += chapters[bookId];
-      if (count >= index ) {
-        savedId = bookId;
-        chapter = chapters[bookId] - (count - index);
+    foreach (bookID; bookIDs) {
+      index += chapters[bookID];
+      if (chapterID < index) {
+        savedID = bookID;
+        chapter = chapters[bookID] - index + chapterID + 1;
         break;
       }
     }
-    return format("%s %d", books[savedId], chapter);
+    return format("%s %d", books[savedID], chapter);
   }
 
-  int encodeChapterId(string bookAndChapter) {
+  long encodeChapterID(string bookAndChapter) {
     string bookName;
-    int count;
-    int chapter;
+    long index;
+    ulong chapter;
     ulong splitNdx;
 
     splitNdx = bookAndChapter.length - 1 - bookAndChapter.retro.indexOf(' ');
     bookName = bookAndChapter[0 .. splitNdx];
-    chapter = bookAndChapter[splitNdx + 1 .. $].to!int;
+    chapter = bookAndChapter[splitNdx + 1 .. $].to!ulong - 1;
 
-    ulong bookId = idByBook[bookName];
+    ulong bookID = idByBook[bookName];
 
-    foreach (id; bookIds) {
-      if (id == bookId)
+    foreach (id; bookIDs) {
+      if (id == bookID)
         break;
-      count += chapters[id];
+      index += chapters[id];
     }
     
-    count += chapter;
-    return count;
+    index += chapter;
+    return index;
   }
 }
+long debugToReadChapterDays;
+long debugDaysRead;
 
 void main(string[] args) {
-  int[] daysRead = args[1 .. $].to!(int[]);
+  long[] daysRead = args[1 .. $].to!(long[]);
   if (daysRead.length == 0)
     daysRead ~= 1;
-  int ndx;
+  long ndx;
 
   // Read in the chunk of text
   string[] text = stdin.byLineCopy.array();
@@ -237,17 +315,16 @@ void main(string[] args) {
   string headSeparator = text[1];
   string mainSeparator = text[3];
 
-  // Extract Date Modified string from text
-  string[] dateRow = text[2].split(" ").array();
-  string* dateModified = &dateRow[1];
+  // Extract Date Row
+  DateRowSpec dateRow = csvReader!DateRowSpec(text[2], '\t').front;
   
-  // Process the lines we want into CSV ranges
+  // Process the lines we want longo CSV ranges
   auto sectionRecordsRange = csvReader!SectionSpec(text[4 .. $ - 2].join("\n"), null, '\t');
 
   // Extract headers
   string[] sectionHeader = sectionRecordsRange.header;
 
-  // Turn ranges into arrays
+  // Turn ranges longo arrays
   SectionSpec[] sectionRecords = sectionRecordsRange.array();
 
   // Declare array of sections for later use
@@ -259,10 +336,10 @@ void main(string[] args) {
   SectionSpec* Psalms = &sectionRecords.find!((a, b) => a.section == b)("Psalms")[0];
   SectionSpec* Proverbs = &sectionRecords.find!((a, b) => a.section == b)("Proverbs")[0];
 
-  int OTDaysRead;
-  int NTDaysRead;
-  int PsDaysRead;
-  int PrDaysRead;
+  long OTDaysRead;
+  long NTDaysRead;
+  long PsDaysRead;
+  long PrDaysRead;
 
   // The semantics change based on how many arguments we passed
   if (args.length > 2) {
@@ -278,87 +355,89 @@ void main(string[] args) {
     PrDaysRead = Proverbs.isActive() ? daysRead[0] : 0;
   }
 
-  // Get dates and days elapsed
-  Date lastModDate = (*dateModified).fromShortHRStringToDate();
+  // Get dates
+  Date startDate = dateRow.getStartDate();
+  Date endDate = dateRow.getEndDate();
+  Date lastModDate = dateRow.getLastModDate();
   Date todaysDate = cast(Date)(Clock.currTime());
-  long daysElapsed = (todaysDate - lastModDate).total!"days";
+  long daysElapsed = (todaysDate - lastModDate).total!"days" + 1;
+
+  auto updateRecord = updateRecordInit(startDate, endDate, lastModDate, todaysDate);
+  //writeln(typeof(updateRecord).stringof);
 
   // Initialize Reading Sections
   ReadingSection OTSection = ReadingSection([ BookRange("Genesis", "Job"),
-                                              BookRange("Ecclesiastes", "Malachi") ],
-                                            6, OTDaysRead);
+                                              BookRange("Ecclesiastes", "Malachi") ]);
   sections ~= OTSection;
-  ReadingSection NTSection = ReadingSection([ BookRange("Matthew", "Revelation") ],
-                                            2, NTDaysRead);
+  ReadingSection NTSection = ReadingSection([ BookRange("Matthew", "Revelation") ]);
   sections ~= NTSection;
-  ReadingSection PsSection = ReadingSection([ BookRange("Psalms", "Psalms") ],
-                                            1, PsDaysRead);
+  ReadingSection PsSection = ReadingSection([ BookRange("Psalms", "Psalms") ]);
   sections ~= PsSection;
-  ReadingSection PrSection = ReadingSection([ BookRange("Proverbs", "Proverbs") ],
-                                            1, PrDaysRead);
+  ReadingSection PrSection = ReadingSection([ BookRange("Proverbs", "Proverbs") ]);
   sections ~= PrSection;
-  // How do I determine whether to loop around or stop when a ReadingSection is finished (inactive)?
-  // I simply change the progress column, arbitrarily setting one number to be different than the
-  // other one. It's a trick, but it works.
  
   // Update table with days read
-  updateRecord(OTSection, oldTest, daysElapsed);
-  updateRecord(NTSection, newTest, daysElapsed);
-  updateRecord(PsSection, Psalms, daysElapsed);
-  updateRecord(PrSection, Proverbs, daysElapsed);
-  *dateModified = todaysDate.toShortHRString();
+  updateRecord(OTSection, oldTest, OTDaysRead);
+  updateRecord(NTSection, newTest, NTDaysRead);
+  updateRecord(PsSection, Psalms, PsDaysRead);
+  updateRecord(PrSection, Proverbs, PrDaysRead);
+  dateRow.setLastModDate(todaysDate);
 
   // write updated table along with related information
   writeln(title);
   writeln(headSeparator);
-  writeln(dateRow.join(" "));
+  with(dateRow) writefln("%s\t%s\t%s", lastModDateStr, startDateStr, endDateStr);
   writeln(mainSeparator);
   writeln(sectionHeader.join("\t"));
   foreach(record; sectionRecords) {
     with(record) {
-      writefln("%s\t%s\t%s\t%s\t%s\t%s\t%s", section, current, target, chaptsBehind, daysBehind, progress, percentComplete);
+      writefln("%s\t%s\t%s\t%s\t%s\t%s\t%s", section, current, target, behind, lastRead, toRead, progress);
     }
   }
   writeln(mainSeparator);
-  write("Status: completed ");
-  foreach(i, section; sections) {
-    if (i == 0)
-      writef("%s", section.daysRead);
-    else if (i == sections.length - 1)
-      if (i == 1)
-        writef(" and %s", section.daysRead);
-      else
-        writef(", and %s", section.daysRead);
-    else
-      writef(", %s", section.daysRead);
-  }
-  writefln(" days worth of reading in %s days", daysElapsed);
+  writefln("Status: last reading completed in %s days", daysElapsed);
 }
 
-void updateRecord(ReadingSection section, SectionSpec* record, long daysElapsed) {
-  int targetId, currentId;
-  int[] progress;
+void delegate(ReadingSection, SectionSpec*, long) updateRecordInit(Date startDate, Date endDate, Date lastModDate, Date todaysDate) {
+  long totalDays = (endDate - startDate).total!"days" + 1;
+  long daysToDate = (todaysDate - startDate).total!"days" + 1;
+  long daysToModDate = (lastModDate - startDate).total!"days" + 1;
 
-  progress = record.progress.split("/").map!(to!int).array();
-  if (progress[0] > progress[1]) {  // The condition for resetting progress
-    currentId = section.chPerDay;
-    targetId = section.chPerDay;
-  } else {
-    targetId = section.encodeChapterId(record.target);
-    currentId = section.encodeChapterId(record.current);
-    targetId += daysElapsed * section.chPerDay;
-    if (targetId > section.chSum)
-      targetId = cast(int)section.chSum;
-    currentId += section.chaptersRead;
-    if (currentId > section.chSum)
-      currentId = cast(int)section.chSum;
+  void updateRecord(ReadingSection section, SectionSpec* record, long daysRead) {
+    long[4] progress = record.getProgress();
+    long readThrough = progress[2];
+    long multiplicity = progress[3];
+    long lastChapter = section.encodeChapterID(record.current) + section.totalChapters * (readThrough - 1);
+    long totalChapters = section.totalChapters * multiplicity;
+    long daysBehind = record.getBehind()[1];
+
+    if (lastModDate == startDate) {
+      lastChapter = 0;
+      daysBehind = 1;
+    }
+
+    long lastDay = daysToModDate - daysBehind;
+    long currentDay = lastDay + daysRead;
+    long nextDay = currentDay + 1;
+    daysBehind = daysToDate - currentDay;
+
+    long targetChapter = daysToDate * totalChapters / totalDays - 1;
+    long nextChapter = nextDay * totalChapters / totalDays - 1;
+    long currentChapter = currentDay * totalChapters / totalDays - 1;
+    long chaptersBehind = targetChapter - currentChapter;
+    long chaptersRead = currentChapter - lastChapter;
+    long chaptersToRead = nextChapter - currentChapter;
+    readThrough = currentChapter / section.totalChapters + 1;
+
+    record.current = section.decodeChapterID(currentChapter % section.totalChapters);
+    record.target = section.decodeChapterID(targetChapter % section.totalChapters);
+    record.setBehind(chaptersBehind, daysBehind);
+    record.setLastRead(chaptersRead, daysRead);
+    record.setToRead(chaptersToRead);
+    record.setProgress(currentChapter % section.totalChapters + 1, section.totalChapters, readThrough, multiplicity);
   }
-  record.chaptsBehind = targetId - currentId;
-  record.daysBehind = record.chaptsBehind / section.chPerDay;
-  record.target = section.decodeChapterID(targetId);
-  record.current = section.decodeChapterID(currentId);
-  record.progress = format("%s/%s", currentId, section.chSum);
-  record.percentComplete = format("%.1f %%", (cast(double)currentId / section.chSum * 100));
+
+  return &updateRecord;
 }
 
 string toShortHRString(Date someDate)
@@ -392,14 +471,17 @@ Date fromHRStringToDate(string dateStr)
 }
 
 bool isActive(SectionSpec* record) {
-  int current;
-  int total;
-  int[] parts;
+  bool isActive = false;
+  long[4] progress = record.getProgress();
 
-  parts = record.progress.split("/").map!(to!int).array();
-  current = parts[0];
-  total = parts[1];
+  if (progress[2] != progress[3]) {
+    isActive = true;
+  }
 
-  return (current != total);
+  if (progress[0] != progress[1]) {
+    isActive = true;
+  }
+
+  return isActive;
 }
 
