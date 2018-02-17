@@ -298,8 +298,6 @@ struct ReadingSection {
     return index;
   }
 }
-long debugToReadChapterDays;
-long debugDaysRead;
 
 void main(string[] args) {
   long[] daysRead = args[1 .. $].to!(long[]);
@@ -342,7 +340,7 @@ void main(string[] args) {
   long PrDaysRead;
 
   // The semantics change based on how many arguments we passed
-  if (args.length > 2) {
+  if (daysRead.length > 1) {
     // figure out which sections are active and assign arguments respectively
     OTDaysRead = oldTest.isActive() ? daysRead[ndx++] : 0;
     NTDaysRead = newTest.isActive() ? daysRead[ndx++] : 0;
@@ -355,14 +353,30 @@ void main(string[] args) {
     PrDaysRead = Proverbs.isActive() ? daysRead[0] : 0;
   }
 
+  string tableResetMsg = "";
+
   // Get dates
   Date startDate = dateRow.getStartDate();
   Date endDate = dateRow.getEndDate();
   Date lastModDate = dateRow.getLastModDate();
   Date todaysDate = cast(Date)(Clock.currTime());
-  long daysElapsed = (todaysDate - lastModDate).total!"days" + 1;
+  long daysElapsed;
+  bool reset = false;
 
-  auto updateRecord = updateRecordInit(startDate, endDate, lastModDate, todaysDate);
+  if (lastModDate < startDate) {
+    reset = true;
+    tableResetMsg = "Table reset; ";
+    lastModDate = startDate;
+    daysElapsed = (todaysDate - lastModDate).total!"days" + 1;
+  } else {
+    daysElapsed = (todaysDate - lastModDate).total!"days";
+  }
+
+  long daysToModDate = (lastModDate - startDate).total!"days" + 1;
+  long daysToDate = (todaysDate - startDate).total!"days" + 1;
+  long totalDays = (endDate - startDate).total!"days" + 1;
+
+  auto updateRecord = updateRecordInit(daysToModDate, daysToDate, totalDays, reset);
   //writeln(typeof(updateRecord).stringof);
 
   // Initialize Reading Sections
@@ -395,14 +409,10 @@ void main(string[] args) {
     }
   }
   writeln(mainSeparator);
-  writefln("Status: last reading completed in %s days", daysElapsed);
+  writefln("Status: %slast reading completed in %s days", tableResetMsg, daysElapsed);
 }
 
-void delegate(ReadingSection, SectionSpec*, long) updateRecordInit(Date startDate, Date endDate, Date lastModDate, Date todaysDate) {
-  long totalDays = (endDate - startDate).total!"days" + 1;
-  long daysToDate = (todaysDate - startDate).total!"days" + 1;
-  long daysToModDate = (lastModDate - startDate).total!"days" + 1;
-
+void delegate(ReadingSection, SectionSpec*, long) updateRecordInit(long daysToModDate, long daysToDate, long totalDays, bool reset) {
   void updateRecord(ReadingSection section, SectionSpec* record, long daysRead) {
     long[4] progress = record.getProgress();
     long readThrough = progress[2];
@@ -411,21 +421,28 @@ void delegate(ReadingSection, SectionSpec*, long) updateRecordInit(Date startDat
     long totalChapters = section.totalChapters * multiplicity;
     long daysBehind = record.getBehind()[1];
 
-    if (lastModDate == startDate) {
+    if (reset) {
       lastChapter = 0;
       daysBehind = 1;
     }
 
-    long lastDay = daysToModDate - daysBehind;
-    long currentDay = lastDay + daysRead;
+    long currentDay = daysToModDate - daysBehind + daysRead;
     long nextDay = currentDay + 1;
     daysBehind = daysToDate - currentDay;
 
     long targetChapter = daysToDate * totalChapters / totalDays - 1;
+    if (targetChapter >= totalChapters)
+      targetChapter = totalChapters - 1;
     long nextChapter = nextDay * totalChapters / totalDays - 1;
+    if (nextChapter >= totalChapters)
+      nextChapter = totalChapters - 1;
     long currentChapter = currentDay * totalChapters / totalDays - 1;
+    if (currentChapter >= totalChapters)
+      currentChapter = totalChapters - 1;
     long chaptersBehind = targetChapter - currentChapter;
     long chaptersRead = currentChapter - lastChapter;
+    if (lastChapter == 0)
+      chaptersRead++;
     long chaptersToRead = nextChapter - currentChapter;
     readThrough = currentChapter / section.totalChapters + 1;
 
@@ -471,17 +488,10 @@ Date fromHRStringToDate(string dateStr)
 }
 
 bool isActive(SectionSpec* record) {
-  bool isActive = false;
   long[4] progress = record.getProgress();
+  long totalChapters = progress[3] * progress[1];
+  long chaptersRead = (progress[2] - 1) * progress[1] + progress[0];
 
-  if (progress[2] != progress[3]) {
-    isActive = true;
-  }
-
-  if (progress[0] != progress[1]) {
-    isActive = true;
-  }
-
-  return isActive;
+  return (chaptersRead < totalChapters);
 }
 
