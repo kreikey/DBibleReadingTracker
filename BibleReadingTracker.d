@@ -368,34 +368,17 @@ void main(string[] args) {
   auto updateRecord = updateRecordInit(daysToModDate, daysToDate, totalDays, reset);
   //writeln(typeof(updateRecord).stringof);
 
-  // Initialize array of sections
-  ReadingSection[] sections = [
-    ReadingSection(
-      [
-        BookRange("Genesis", "Job"),
-        BookRange("Ecclesiastes", "Malachi")
-      ]
-    ),
-    ReadingSection(
-      [
-        BookRange("Matthew", "Revelation")
-      ]
-    ),
-    ReadingSection(
-      [
-        BookRange("Psalms", "Psalms")
-      ]
-    ),
-    ReadingSection(
-      [
-        BookRange("Proverbs", "Proverbs")
-      ]
-    )
+  ReadingSection[string] sectionByName = [
+    "Old Testament" : ReadingSection([BookRange("Genesis", "Job"),
+        BookRange("Ecclesiastes", "Malachi")]),
+    "New Testament" : ReadingSection([BookRange("Matthew", "Revelation")]),
+    "Psalms" : ReadingSection([BookRange("Psalms", "Psalms")]),
+    "Proverbs" : ReadingSection([BookRange("Proverbs", "Proverbs")])
   ];
- 
+
   // Update table with days read
-  foreach(ref record, section, daysRead; lockstep(sectionRecords, sections, daysRead)) {
-    updateRecord(record, section, daysRead);
+  foreach(ref record, daysRead; lockstep(sectionRecords, daysRead)) {
+    updateRecord(record, sectionByName[record.section], daysRead);
   }
 
   // Update last-modified date
@@ -430,26 +413,19 @@ void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(long daysT
       daysBehind = 1;
     }
 
+    if (daysToModDate - daysBehind + daysRead > totalDays) {
+      daysRead = totalDays - (daysToModDate - daysBehind);
+    }
+
     long currentDay = daysToModDate - daysBehind + daysRead;
-    long nextDay = currentDay + 1;
+    long nextDay = currentDay < totalDays ? currentDay + 1 : currentDay; // could handle chaptersToRead issue here by limiting nextDay depending on totalDays
     daysBehind = daysToDate - currentDay;
 
     long targetChapter = daysToDate * totalChapters / totalDays - 1;
-    if (targetChapter >= totalChapters) {
+    if (targetChapter > totalChapters - 1)
       targetChapter = totalChapters - 1;
-      //daysBehind = record.getBehind()[1];
-    }
     long nextChapter = nextDay * totalChapters / totalDays - 1;
-    if (nextChapter >= totalChapters) {
-      nextChapter = totalChapters - 1;
-      //daysBehind = record.getBehind()[1];
-    }
     long currentChapter = currentDay * totalChapters / totalDays - 1;
-    if (currentChapter >= totalChapters) {
-      currentChapter = totalChapters - 1;
-      //daysBehind = record.getBehind()[1];
-
-    }
     long chaptersBehind = targetChapter - currentChapter;
     long chaptersRead = currentChapter - lastChapter;
     if (lastChapter == 0)
