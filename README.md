@@ -27,10 +27,14 @@ Run the macro with `@b`
 
 When you run the macro, pass in command-line arguments saying how many days' worth of reading you've done for each section.
 Example:
+
 `:.,.+10!BibleReadingTracker 1 2 2 1`
+
 Or just pass one argument if you've read the same number of days' worth for each section
+
 `:.,.+10!BibleReadingTracker 3`
-Or just don't pass any arguments and just hit Enter if you've done one day's worth of reading.
+
+Or just don't pass any arguments and just hit Enter if you've done one day's worth of reading for each section.
 
 To compile the program, run `dmd DBibleReadingTracker.d` from the OS command line.
 On unix-like systems, you can also run the program as a script by making it executable and running it as
