@@ -1,6 +1,8 @@
 # DBibleReadingTracker
 This is a Bible reading tracker program for use as a filter in Vim, to be called from a macro.
 
+It is written in the D programming language.
+
 It receives a table of text and updates it based on the date, and the passed-in command line arguments.
 
 It has hard-coded data structures defining the books in the Bible and the number of chapters in each book.
