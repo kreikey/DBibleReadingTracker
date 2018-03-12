@@ -1,0 +1,4 @@
+to compile, run
+dmd BibleReadingTracker.d
+You may also run it as a script, by giving execute permissions to the source file with e.g. `chmod 755 BibleReadingTracker.d` or similar, and then just entering `./BibleReadingTracker.d`
+

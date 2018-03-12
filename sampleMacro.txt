@@ -1,0 +1,3 @@
+Put the following line into a Vim register by going to the beginning of the line and entering the keystrokes "by$
+1G11!!BibleReadingTracker 
+To run the macro, hit @b
