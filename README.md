@@ -16,7 +16,7 @@ It works. For me.
 To make it work for you, set tabstop to 20 with `:set tabstop=20` in Vim.
 Also, make a macro to call the thing, by copying the following line into a register:
 
-`1G11!!BibleReadingTracker `
+`1G11!!BibleReadingTracker  `
 
 But you must not include the newline character! So place the cursor at the beginning of the line and use the keystrokes 
 
