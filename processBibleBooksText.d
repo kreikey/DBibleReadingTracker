@@ -28,8 +28,12 @@ void main() {
   NT.each!((i, ref a) => (i % 2 == 0) ? a.insertInPlace(a.length, "\t") : a.insertInPlace(a.length, "\n"));
   auto NTTab = appender(commonHeader);
   NTTab.put(NT.join());
+  auto BBTab = appender(commonHeader);
+  BBTab.put(OT.join());
+  BBTab.put(NT.join());
   std.file.write("OldTestament.tsv", OTTab.data());
   std.file.write("NewTestament.tsv", NTTab.data());
+  std.file.write("BibleBooks.tsv", BBTab.data());
   writeln("done");
   //(i, ref a) => i % 2 == 0 ? a.insertInPlace(a.length, "\t") : a.insertInPlace(a.length, "\n")
 
