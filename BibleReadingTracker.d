@@ -331,11 +331,7 @@ void main(string[] args) {
     daysRead.fill(args[1].to!long());
   } else {
     foreach (record, ref count; lockstep(sectionRecords, daysRead)) {
-      if (record.isActive()) {
-        count = args[ndx++].to!long();
-      } else {
-        count = 0;
-      }
+      count = record.isActive() ? args[ndx++].to!long() : 0;
     }
   }
 
@@ -345,28 +341,19 @@ void main(string[] args) {
   Date lastModDate = dateRow.getLastModDate();
   Date todaysDate = cast(Date)(Clock.currTime());
 
-  // Determine if we need to reset the table, and handle the special case of being on day 1
-  long daysElapsed;
-  bool reset = false;
+  // Initialize our updateRecord closure with the day offsets we calculated so we don't have to pass a bunch of reduntant arguments to it when we update records
+  auto updateRecord = updateRecordInit(startDate, endDate, lastModDate, todaysDate);
+  //writeln(typeof(updateRecord).stringof);
+
   string tableResetMsg = "";
+  long daysElapsed = 0;
 
   if (lastModDate < startDate) {
-    reset = true;
-    tableResetMsg = "Table reset; ";
+    daysElapsed++;
+    tableResetMsg ~= "Table reset; ";
     lastModDate = startDate;
-    daysElapsed = (todaysDate - lastModDate).total!"days" + 1;
-  } else {
-    daysElapsed = (todaysDate - lastModDate).total!"days";
   }
-
-  // Initialize the day offsets we'll use to do our calculations
-  long daysToModDate = (lastModDate - startDate).total!"days" + 1;
-  long daysToDate = (todaysDate - startDate).total!"days" + 1;
-  long totalDays = (endDate - startDate).total!"days" + 1;
-
-  // Initialize our updateRecord closure with the day offsets we calculated so we don't have to pass a bunch of reduntant arguments to it when we update records
-  auto updateRecord = updateRecordInit(daysToModDate, daysToDate, totalDays, reset);
-  //writeln(typeof(updateRecord).stringof);
+  daysElapsed += (todaysDate - lastModDate).total!"days";
 
   ReadingSection[string] sectionByName = [
     "Old Testament" : ReadingSection([BookRange("Genesis", "Job"),
@@ -399,7 +386,15 @@ void main(string[] args) {
   writefln("Status: %scompleted last reading in %s days", tableResetMsg, daysElapsed);
 }
 
-void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(long daysToModDate, long daysToDate, long totalDays, bool reset) {
+void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date startDate, Date endDate, Date lastModDate, Date todaysDate) {
+  bool reset = lastModDate < startDate;
+  if (reset)
+    lastModDate = startDate;
+  // Initialize the day offsets we'll use to do our calculations
+  long daysToModDate = (lastModDate - startDate).total!"days" + 1;
+  long daysToDate = (todaysDate - startDate).total!"days" + 1;
+  long totalDays = (endDate - startDate).total!"days" + 1;
+
   void updateRecord(ref SectionSpec record, ReadingSection section, long daysRead) {
     long[4] progress = record.getProgress();
     long readThrough = progress[2];
