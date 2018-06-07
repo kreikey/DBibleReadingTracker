@@ -151,7 +151,7 @@ ulong[] chapters = [
 immutable ulong[string] idByBook;
 
 static this() {
-  idByBook = assocArray(zip(books, iota(0, books.length)));
+  idByBook = zip(books, iota(0, books.length)).assocArray();
 }
 
 struct BookRange {
