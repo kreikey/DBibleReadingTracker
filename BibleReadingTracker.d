@@ -297,6 +297,42 @@ struct ReadingSection {
     index += chapter;
     return index;
   }
+
+/*
+ *  auto byDay(ulong totalDays, ulong multiplicity) {
+ *    ulong chaptersInPlan = totalChapters * multiplicity;
+ *
+ *    struct Result {
+ *      bool empty = false;
+ *      ulong frontDay = 1;
+ *      ulong backDay = totalDays;
+ *      ulong _front = frontDay * chaptersInPlan / totalDays;
+ *      ulong _back = backDay * chaptersInPlan / totalDays;
+ *
+ *      ulong front() @property {
+ *        return _front % multiplicity;
+ *      }
+ *      ulong back() @property {
+ *        return _back % multiplicity;
+ *      }
+ *
+ *      void popFront() {
+ *        if (empty = false)
+ *          frontDay++;
+ *        if (frontDay == backDay)
+ *          empty = true;
+ *      }
+ *      void popBack() {
+ *        if (empty == false)
+ *          backDay--;
+ *        if (backDay == frontDay)
+ *          empty = true;
+ *      }
+ *    }
+ *    return Result();
+ *  }
+ */
+
 }
 
 void main(string[] args) {
@@ -311,13 +347,13 @@ void main(string[] args) {
   // Extract Date Row
   DateRowSpec dateRow = csvReader!DateRowSpec(text[2], '\t').front;
   
-  // Process the lines we want longo CSV ranges
+  // Process the lines we want into CSV ranges
   auto sectionRecordsRange = csvReader!SectionSpec(text[4 .. $ - 2].join("\n"), null, '\t');
 
   // Extract headers
   string[] sectionHeader = sectionRecordsRange.header;
 
-  // Turn ranges longo arrays
+  // Turn ranges into arrays
   SectionSpec[] sectionRecords = sectionRecordsRange.array();
 
   // Fix up number of daysRead arguments
@@ -402,6 +438,8 @@ void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date start
     long lastChapter = section.encodeChapterID(record.current) + section.totalChapters * (readThrough - 1);
     long totalChapters = section.totalChapters * multiplicity;
     long daysBehind = record.getBehind()[1];
+    //auto chapterByDay = section.byDay(totalDays, multiplicity);
+    //long totalChapters = chapterByDay.back + 1;
 
     if (reset) {
       lastChapter = 0;
