@@ -298,40 +298,45 @@ struct ReadingSection {
     return index;
   }
 
-/*
- *  auto byDay(ulong totalDays, ulong multiplicity) {
- *    ulong chaptersInPlan = totalChapters * multiplicity;
- *
- *    struct Result {
- *      bool empty = false;
- *      ulong frontDay = 1;
- *      ulong backDay = totalDays;
- *      ulong _front = frontDay * chaptersInPlan / totalDays;
- *      ulong _back = backDay * chaptersInPlan / totalDays;
- *
- *      ulong front() @property {
- *        return _front % multiplicity;
- *      }
- *      ulong back() @property {
- *        return _back % multiplicity;
- *      }
- *
- *      void popFront() {
- *        if (empty = false)
- *          frontDay++;
- *        if (frontDay == backDay)
- *          empty = true;
- *      }
- *      void popBack() {
- *        if (empty == false)
- *          backDay--;
- *        if (backDay == frontDay)
- *          empty = true;
- *      }
- *    }
- *    return Result();
- *  }
- */
+  auto byDay(ulong totalDays, ulong multiplicity) {
+    struct Result {
+      bool empty = true;
+      ulong frontDay;
+      ulong backDay;
+      ulong chaptersInPlan;
+      ulong totalDays;
+      ulong multiplicity;
+      ulong totalChapters;
+
+      this(ulong _totalDays, ulong _multiplicity, ulong _totalChapters) { 
+        backDay = _totalDays;
+        frontDay = 1;
+        empty = backDay != frontDay;
+        chaptersInPlan = _totalChapters * _multiplicity;
+      }
+
+      ulong front() @property {
+        return (frontDay * chaptersInPlan / totalDays) % multiplicity;
+      }
+      ulong back() @property {
+        return (backDay * chaptersInPlan / totalDays) % multiplicity;
+      }
+
+      void popFront() {
+        if (empty == false)
+          frontDay++;
+        if (frontDay == backDay)
+          empty = true;
+      }
+      void popBack() {
+        if (empty == false)
+          backDay--;
+        if (backDay == frontDay)
+          empty = true;
+      }
+    }
+    return Result(totalDays, multiplicity, totalChapters);
+  }
 
 }
 
