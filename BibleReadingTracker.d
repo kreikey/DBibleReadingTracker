@@ -9,6 +9,8 @@ import std.string;
 import std.range;
 import std.typecons;
 import std.format;
+//import std.traits;
+import core.exception;
 
 string[] books = [
   "Genesis",
@@ -300,26 +302,34 @@ struct ReadingSection {
 
   auto byDay(ulong totalDays, ulong multiplicity) {
     struct Result {
-      bool empty = true;
+      //ulong totalDays;
+      //ulong multiplicity;
+      //ulong chaptersInRange;
+      ulong chaptersInPlan;
       ulong frontDay;
       ulong backDay;
-      ulong chaptersInPlan;
-      ulong totalDays;
-      ulong multiplicity;
-      ulong totalChapters;
+      bool empty = true;
+      ulong length;
 
-      this(ulong _totalDays, ulong _multiplicity, ulong _totalChapters) { 
-        backDay = _totalDays;
+      this(ulong _totalDays, ulong _multiplicity, ulong _chaptersInRange) { 
+        //totalDays = _totalDays;
+        //multiplicity = _multiplicity;
+        //chaptersInRange = _chaptersInRange;
+        chaptersInPlan = _chaptersInRange * _multiplicity;
         frontDay = 1;
+        backDay = _totalDays;
         empty = backDay != frontDay;
-        chaptersInPlan = _totalChapters * _multiplicity;
+        length = _totalDays;
       }
 
       ulong front() @property {
-        return (frontDay * chaptersInPlan / totalDays) % multiplicity;
+        writeln("Debug:");
+        writefln("frontDay: %s, chaptersInPlan: %s, totalDays: %s, multiplicity: %s", frontDay, chaptersInPlan, totalDays, multiplicity);
+        //writeln("Debug: ", (frontDay * chaptersInPlan / totalDays) % multiplicity);
+        return frontDay * chaptersInPlan / length - 1;
       }
       ulong back() @property {
-        return (backDay * chaptersInPlan / totalDays) % multiplicity;
+        return backDay * chaptersInPlan / length - 1;
       }
 
       void popFront() {
@@ -333,6 +343,23 @@ struct ReadingSection {
           backDay--;
         if (backDay == frontDay)
           empty = true;
+      }
+
+      auto save() @property {
+        auto copy = this;
+        return copy;
+      }
+
+      ulong opIndex(size_t currentDay) {
+        if (currentDay > length)
+          throw new RangeError("BibleReadingTracker.d");
+        if (currentDay < 1)
+          throw new RangeError("BibleReadingTracker.d");
+        return currentDay * chaptersInPlan / length - 1;
+      }
+
+      ulong opDollar() {
+        return length;
       }
     }
     return Result(totalDays, multiplicity, totalChapters);
@@ -440,11 +467,31 @@ void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date start
     long[4] progress = record.getProgress();
     long readThrough = progress[2];
     long multiplicity = progress[3];
-    long lastChapter = section.encodeChapterID(record.current) + section.totalChapters * (readThrough - 1);
-    long totalChapters = section.totalChapters * multiplicity;
     long daysBehind = record.getBehind()[1];
+    auto chapterByDay = section.byDay(totalDays, multiplicity);
+    assert(isBidirectionalRange!(typeof(chapterByDay)));
+    assert(isRandomAccessRange!(typeof(chapterByDay)));
+    //long lastChapter = section.encodeChapterID(record.current) + section.totalChapters * (readThrough - 1);
+    //writeln(lastChapter);
+    long lastChapter = chapterByDay[daysToModDate - daysBehind];
+    //writeln(lastChapter2);
+    //assert(lastChapter == lastChapter2);
+    //long totalChapters = section.totalChapters * multiplicity;
+    long totalChapters = chapterByDay.length;
+
     //auto chapterByDay = section.byDay(totalDays, multiplicity);
-    //long totalChapters = chapterByDay.back + 1;
+    //assert(isBidirectionalRange!(typeof(chapterByDay)));
+    //assert(isRandomAccessRange!(typeof(chapterByDay)));
+    //long lastChapter2 = chapterByDay[daysToDate];
+    //writeln(lastChapter);
+    //writeln(lastChapter2);
+    //assert(lastChapter == lastChapter2);
+    //long totalChapters2 = chapterByDay[$] + 1;
+    //writeln(totalChapters);
+    //writeln(totalChapters2);
+    //assert(totalChapters == totalChapters2);
+    //chapterByDay.front;
+    //writefln("Debug: chapterByDay.back: %s", chapterByDay.back);
 
     if (reset) {
       lastChapter = 0;
@@ -459,11 +506,14 @@ void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date start
     long nextDay = currentDay < totalDays ? currentDay + 1 : currentDay; // could handle chaptersToRead issue here by limiting nextDay depending on totalDays
     daysBehind = daysToDate - currentDay;
 
-    long targetChapter = daysToDate * totalChapters / totalDays - 1;
-    if (targetChapter > totalChapters - 1)
-      targetChapter = totalChapters - 1;
-    long nextChapter = nextDay * totalChapters / totalDays - 1;
-    long currentChapter = currentDay * totalChapters / totalDays - 1;
+    //long targetChapter = daysToDate * totalChapters / totalDays - 1;
+    //if (targetChapter > totalChapters - 1)
+      //targetChapter = totalChapters - 1;
+    long targetChapter = chapterByDay[daysToDate];
+    //long nextChapter = nextDay * totalChapters / totalDays - 1;
+    long nextChapter = chapterByDay[nextDay];
+    //long currentChapter = currentDay * totalChapters / totalDays - 1;
+    long currentChapter = chapterByDay[currentDay];
     long chaptersBehind = targetChapter - currentChapter;
     long chaptersRead = currentChapter - lastChapter;
     if (lastChapter == 0)
