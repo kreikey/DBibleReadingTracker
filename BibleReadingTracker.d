@@ -304,18 +304,18 @@ struct ReadingSection {
     struct Result {
       //ulong totalDays;
       //ulong multiplicity;
-      //ulong chaptersInRange;
-      ulong chaptersInPlan;
+      //ulong chaptersInSection;
+      ulong totalChapters;
       ulong frontDay;
       ulong backDay;
       bool empty = true;
       ulong length;
 
-      this(ulong _totalDays, ulong _multiplicity, ulong _chaptersInRange) { 
+      this(ulong _totalDays, ulong _multiplicity, ulong _chaptersInSection) { 
         //totalDays = _totalDays;
         //multiplicity = _multiplicity;
-        //chaptersInRange = _chaptersInRange;
-        chaptersInPlan = _chaptersInRange * _multiplicity;
+        //chaptersInSection = _chaptersInSection;
+        totalChapters = _chaptersInSection * _multiplicity;
         frontDay = 1;
         backDay = _totalDays;
         empty = backDay != frontDay;
@@ -324,12 +324,12 @@ struct ReadingSection {
 
       ulong front() @property {
         writeln("Debug:");
-        writefln("frontDay: %s, chaptersInPlan: %s, totalDays: %s, multiplicity: %s", frontDay, chaptersInPlan, totalDays, multiplicity);
+        writefln("frontDay: %s, totalChapters: %s, totalDays: %s, multiplicity: %s", frontDay, totalChapters, totalDays, multiplicity);
         //writeln("Debug: ", (frontDay * chaptersInPlan / totalDays) % multiplicity);
-        return frontDay * chaptersInPlan / length - 1;
+        return frontDay * totalChapters / length - 1;
       }
       ulong back() @property {
-        return backDay * chaptersInPlan / length - 1;
+        return backDay * totalChapters / length - 1;
       }
 
       void popFront() {
@@ -355,7 +355,7 @@ struct ReadingSection {
           throw new RangeError("BibleReadingTracker.d");
         if (currentDay < 1)
           throw new RangeError("BibleReadingTracker.d");
-        return currentDay * chaptersInPlan / length - 1;
+        return currentDay * totalChapters / length - 1;
       }
 
       ulong opDollar() {
@@ -459,8 +459,8 @@ void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date start
   if (reset)
     lastModDate = startDate;
   // Initialize the day offsets we'll use to do our calculations
-  long daysToModDate = (lastModDate - startDate).total!"days" + 1;
-  long daysToDate = (todaysDate - startDate).total!"days" + 1;
+  long targetDayOld = (lastModDate - startDate).total!"days" + 1;
+  long targetDayNew = (todaysDate - startDate).total!"days" + 1;
   long totalDays = (endDate - startDate).total!"days" + 1;
 
   void updateRecord(ref SectionSpec record, ReadingSection section, long daysRead) {
@@ -469,64 +469,33 @@ void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date start
     long multiplicity = progress[3];
     long daysBehind = record.getBehind()[1];
     auto chapterByDay = section.byDay(totalDays, multiplicity);
-    assert(isBidirectionalRange!(typeof(chapterByDay)));
     assert(isRandomAccessRange!(typeof(chapterByDay)));
-    //long lastChapter = section.encodeChapterID(record.current) + section.totalChapters * (readThrough - 1);
-    //writeln(lastChapter);
-    long lastChapter = chapterByDay[daysToModDate - daysBehind];
-    //writeln(lastChapter2);
-    //assert(lastChapter == lastChapter2);
-    //long totalChapters = section.totalChapters * multiplicity;
-    long totalChapters = chapterByDay.length;
 
-    //auto chapterByDay = section.byDay(totalDays, multiplicity);
-    //assert(isBidirectionalRange!(typeof(chapterByDay)));
-    //assert(isRandomAccessRange!(typeof(chapterByDay)));
-    //long lastChapter2 = chapterByDay[daysToDate];
-    //writeln(lastChapter);
-    //writeln(lastChapter2);
-    //assert(lastChapter == lastChapter2);
-    //long totalChapters2 = chapterByDay[$] + 1;
-    //writeln(totalChapters);
-    //writeln(totalChapters2);
-    //assert(totalChapters == totalChapters2);
-    //chapterByDay.front;
-    //writefln("Debug: chapterByDay.back: %s", chapterByDay.back);
-
+    long curDayOld = targetDayOld - daysBehind;
     if (reset) {
-      lastChapter = 0;
-      daysBehind = 1;
+      curDayOld = 0;
+      if (daysRead == 0)
+        daysRead = 1;
+    } else if (curDayOld + daysRead > totalDays) {
+      daysRead = totalDays - curDayOld;
     }
+    long curDayNew = curDayOld + daysRead;
 
-    if (daysToModDate - daysBehind + daysRead > totalDays) {
-      daysRead = totalDays - (daysToModDate - daysBehind);
-    }
+    long nextDay = curDayNew + 1; // handle chaptersToRead issue here by limiting nextDay depending on totalDays
+    if (curDayNew >= totalDays)
+      nextDay--;
 
-    long currentDay = daysToModDate - daysBehind + daysRead;
-    long nextDay = currentDay < totalDays ? currentDay + 1 : currentDay; // could handle chaptersToRead issue here by limiting nextDay depending on totalDays
-    daysBehind = daysToDate - currentDay;
+    if (targetDayNew > chapterByDay.length)
+      targetDayNew = chapterByDay.length;
 
-    //long targetChapter = daysToDate * totalChapters / totalDays - 1;
-    //if (targetChapter > totalChapters - 1)
-      //targetChapter = totalChapters - 1;
-    long targetChapter = chapterByDay[daysToDate];
-    //long nextChapter = nextDay * totalChapters / totalDays - 1;
-    long nextChapter = chapterByDay[nextDay];
-    //long currentChapter = currentDay * totalChapters / totalDays - 1;
-    long currentChapter = chapterByDay[currentDay];
-    long chaptersBehind = targetChapter - currentChapter;
-    long chaptersRead = currentChapter - lastChapter;
-    if (lastChapter == 0)
-      chaptersRead++;
-    long chaptersToRead = nextChapter - currentChapter;
-    readThrough = currentChapter / section.totalChapters + 1;
+    readThrough = chapterByDay[curDayNew] / section.totalChapters + 1;
 
-    record.current = section.decodeChapterID(currentChapter % section.totalChapters);
-    record.target = section.decodeChapterID(targetChapter % section.totalChapters);
-    record.setBehind(chaptersBehind, daysBehind);
-    record.setLastRead(chaptersRead, daysRead);
-    record.setToRead(chaptersToRead);
-    record.setProgress(currentChapter % section.totalChapters + 1, section.totalChapters, readThrough, multiplicity);
+    record.current = section.decodeChapterID(chapterByDay[curDayNew] % section.totalChapters);
+    record.target = section.decodeChapterID(chapterByDay[targetDayNew] % section.totalChapters);
+    record.setBehind(chapterByDay[targetDayNew] - chapterByDay[curDayNew], targetDayNew - curDayNew);
+    record.setLastRead(reset ? chapterByDay[curDayNew] + 1 : chapterByDay[curDayNew] - chapterByDay[curDayOld], daysRead);
+    record.setToRead(chapterByDay[nextDay] - chapterByDay[curDayNew]);
+    record.setProgress(chapterByDay[curDayNew] % section.totalChapters + 1, section.totalChapters, readThrough, multiplicity);
   }
 
   return &updateRecord;
