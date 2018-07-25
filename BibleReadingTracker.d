@@ -7,9 +7,6 @@ import std.csv;
 import std.conv;
 import std.string;
 import std.range;
-import std.typecons;
-import std.format;
-//import std.traits;
 import core.exception;
 
 string[] books = [
@@ -252,7 +249,7 @@ struct DateRowSpec {
 }
 
 struct Chapter {
-  // TODO: we want 2 IDs: the plan ID and the section ID. Something like planID and secID. Section ID disregards multiplicity.
+  // We have 2 IDs: the plan ID and the section ID. Section ID indexes just the books in the section. Plan ID includes multiplicity, indexing the books numerous times, depending on multiplicity. The range of planID is a multiple of the total number of chapters in the section.
   string name;
   ulong planID;
   ulong secID;
@@ -311,8 +308,6 @@ struct ReadingSection {
     ReadingSection* parent = &this;
 
     struct Result {
-      //ulong totalDays;
-      //ulong multiplicity;
       ulong chaptersInSection;
       ulong totalChapters;
       ulong frontDay;
@@ -321,8 +316,6 @@ struct ReadingSection {
       ulong length;
 
       this(ulong _totalDays, ulong _multiplicity) { 
-        //totalDays = _totalDays;
-        //multiplicity = _multiplicity;
         chaptersInSection = parent.totalChapters;
         totalChapters = chaptersInSection * _multiplicity;
         frontDay = 1;
@@ -332,19 +325,13 @@ struct ReadingSection {
       }
 
       Chapter front() @property {
-        //writeln("Debug:");
-        //writefln("frontDay: %s, totalChapters: %s, totalDays: %s, multiplicity: %s", frontDay, totalChapters, totalDays, multiplicity);
-        //writeln("Debug: ", (frontDay * chaptersInPlan / totalDays) % multiplicity);
-        //return frontDay * totalChapters / length - 1;
         ulong planID = frontDay * totalChapters / (length - 1);
-        //string chapterName = parent.decodeChapterID(planID % chaptersInSection);
         ulong secID = (planID - 1) % chaptersInSection + 1;
         string chapterName = parent.decodeChapterID(secID);
         return Chapter(chapterName, planID, secID);
       }
       Chapter back() @property {
         ulong planID = backDay * totalChapters / (length - 1);
-        //string chapterName = parent.decodeChapterID(planID % chaptersInSection);
         ulong secID = (planID - 1) % chaptersInSection + 1;
         string chapterName = parent.decodeChapterID(secID);
         return Chapter(chapterName, planID, secID);
@@ -374,7 +361,6 @@ struct ReadingSection {
         if (currentDay < 0)
           throw new RangeError("BibleReadingTracker.d");
         ulong planID = currentDay * totalChapters / (length - 1);
-        //writeln((planID - 1) % chaptersInSection + 1);
         ulong secID = (planID - 1) % chaptersInSection + 1;
         string chapterName = parent.decodeChapterID(secID);
         return Chapter(chapterName, planID, secID);
@@ -433,7 +419,6 @@ void main(string[] args) {
 
   // Initialize our updateRecord closure with the day offsets we calculated so we don't have to pass a bunch of reduntant arguments to it when we update records
   auto updateRecord = updateRecordInit(startDate, endDate, lastModDate, todaysDate);
-  //writeln(typeof(updateRecord).stringof);
 
   string tableResetMsg = "";
   long daysElapsed = 0;
@@ -512,7 +497,6 @@ void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date start
 
     readThrough = (chapterByDay[curDayNew].planID - 1) / section.totalChapters + 1;
 
-    //writeln(curDayNew);
     record.current = chapterByDay[curDayNew].name;
     record.target = chapterByDay[targetDayNew].name;
     record.setBehind(chapterByDay[targetDayNew].planID - chapterByDay[curDayNew].planID, targetDayNew - curDayNew);
