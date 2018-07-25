@@ -252,8 +252,10 @@ struct DateRowSpec {
 }
 
 struct Chapter {
+  // TODO: we want 2 IDs: the plan ID and the section ID. Something like planID and secID. Section ID disregards multiplicity.
   string name;
-  ulong ID;
+  ulong planID;
+  ulong secID;
 }
 
 struct ReadingSection {
@@ -274,9 +276,9 @@ struct ReadingSection {
 
     foreach (bookID; bookIDs) {
       index += chapters[bookID];
-      if (chapterID < index) {
+      if (chapterID <= index) {
         savedID = bookID;
-        chapter = chapters[bookID] - index + chapterID + 1;
+        chapter = chapters[bookID] - index + chapterID;
         break;
       }
     }
@@ -285,13 +287,13 @@ struct ReadingSection {
 
   long encodeChapterID(string bookAndChapter) {
     string bookName;
-    long index;
+    ulong index;
     ulong chapter;
     ulong splitNdx;
 
     splitNdx = bookAndChapter.length - 1 - bookAndChapter.retro.indexOf(' ');
     bookName = bookAndChapter[0 .. splitNdx];
-    chapter = bookAndChapter[splitNdx + 1 .. $].to!ulong - 1;
+    chapter = bookAndChapter[splitNdx + 1 .. $].to!ulong;
 
     ulong bookID = idByBook[bookName];
 
@@ -326,7 +328,7 @@ struct ReadingSection {
         frontDay = 1;
         backDay = _totalDays;
         empty = backDay != frontDay;
-        length = _totalDays;
+        length = _totalDays + 1;
       }
 
       Chapter front() @property {
@@ -334,14 +336,18 @@ struct ReadingSection {
         //writefln("frontDay: %s, totalChapters: %s, totalDays: %s, multiplicity: %s", frontDay, totalChapters, totalDays, multiplicity);
         //writeln("Debug: ", (frontDay * chaptersInPlan / totalDays) % multiplicity);
         //return frontDay * totalChapters / length - 1;
-        ulong chapterID = frontDay * totalChapters / length - 1;
-        string chapterName = parent.decodeChapterID(chapterID % chaptersInSection);
-        return Chapter(chapterName, chapterID);
+        ulong planID = frontDay * totalChapters / (length - 1);
+        //string chapterName = parent.decodeChapterID(planID % chaptersInSection);
+        ulong secID = (planID - 1) % chaptersInSection + 1;
+        string chapterName = parent.decodeChapterID(secID);
+        return Chapter(chapterName, planID, secID);
       }
       Chapter back() @property {
-        ulong chapterID = backDay * totalChapters / length - 1;
-        string chapterName = parent.decodeChapterID(chapterID % chaptersInSection);
-        return Chapter(chapterName, chapterID);
+        ulong planID = backDay * totalChapters / (length - 1);
+        //string chapterName = parent.decodeChapterID(planID % chaptersInSection);
+        ulong secID = (planID - 1) % chaptersInSection + 1;
+        string chapterName = parent.decodeChapterID(secID);
+        return Chapter(chapterName, planID, secID);
       }
 
       void popFront() {
@@ -363,13 +369,15 @@ struct ReadingSection {
       }
 
       Chapter opIndex(size_t currentDay) {
-        if (currentDay > length)
+        if (currentDay >= length)
           throw new RangeError("BibleReadingTracker.d");
-        if (currentDay < 1)
+        if (currentDay < 0)
           throw new RangeError("BibleReadingTracker.d");
-        ulong chapterID = currentDay * totalChapters / length - 1;
-        string chapterName = parent.decodeChapterID(chapterID % chaptersInSection);
-        return Chapter(chapterName, chapterID);
+        ulong planID = currentDay * totalChapters / (length - 1);
+        //writeln((planID - 1) % chaptersInSection + 1);
+        ulong secID = (planID - 1) % chaptersInSection + 1;
+        string chapterName = parent.decodeChapterID(secID);
+        return Chapter(chapterName, planID, secID);
       }
 
       ulong opDollar() {
@@ -502,14 +510,15 @@ void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date start
     if (targetDayNew > chapterByDay.length)
       targetDayNew = chapterByDay.length;
 
-    readThrough = chapterByDay[curDayNew].ID / section.totalChapters + 1;
+    readThrough = (chapterByDay[curDayNew].planID - 1) / section.totalChapters + 1;
 
+    //writeln(curDayNew);
     record.current = chapterByDay[curDayNew].name;
     record.target = chapterByDay[targetDayNew].name;
-    record.setBehind(chapterByDay[targetDayNew].ID - chapterByDay[curDayNew].ID, targetDayNew - curDayNew);
-    record.setLastRead(reset ? chapterByDay[curDayNew].ID + 1 : chapterByDay[curDayNew].ID - chapterByDay[curDayOld].ID, daysRead);
-    record.setToRead(chapterByDay[nextDay].ID - chapterByDay[curDayNew].ID);
-    record.setProgress(chapterByDay[curDayNew].ID % section.totalChapters + 1, section.totalChapters, readThrough, multiplicity);
+    record.setBehind(chapterByDay[targetDayNew].planID - chapterByDay[curDayNew].planID, targetDayNew - curDayNew);
+    record.setLastRead(chapterByDay[curDayNew].planID - chapterByDay[curDayOld].planID, daysRead);
+    record.setToRead(chapterByDay[nextDay].planID - chapterByDay[curDayNew].planID);
+    record.setProgress(chapterByDay[curDayNew].secID, section.totalChapters, readThrough, multiplicity);
   }
 
   return &updateRecord;
