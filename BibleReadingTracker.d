@@ -158,6 +158,11 @@ struct BookRange {
   string end;
 }
 
+struct ChaptersDays {
+  long chapters;
+  long days;
+}
+
 struct SectionSpec {
   string section;
   string current;
@@ -167,32 +172,38 @@ struct SectionSpec {
   string toRead;
   string progress;
 
-  long[2] getBehind() {
+  ChaptersDays getBehind() {
     string[] parts = behind.split("|");
-    long[2] behindParts = [parts[0].to!long(), parts[1].to!long()];
-    return behindParts;
+    ChaptersDays result = {chapters: parts[0].to!long(), days: parts[1].to!long()};
+    return result;
   }
 
   void setBehind(long chapters, long days) {
     behind = format!"%d|%d"(chapters, days);
   }
 
-  long[2] getLastRead() {
+  ChaptersDays getLastRead() {
     string[] parts = lastRead.split("|");
-    long[2] lastReadParts = [parts[0].to!long(), parts[1].to!long()];
-    return lastReadParts;
+    ChaptersDays result = {chapters: parts[0].to!long(), days: parts[1].to!long()};
+    return result;
   }
 
   void setLastRead(long chapters, long days) {
     lastRead = format!("%d|%d")(chapters, days);
   }
 
-  long getToRead() {
-    return toRead.to!long();
+  long[] getToRead() {
+    return toRead.split("..").map!(to!long).array();
   }
 
   void setToRead(long chToRead) {
     toRead = chToRead.to!string();
+  }
+
+  void setToRead(long next, long last) {
+    string nextStr = next.to!string();
+    string lastStr = last.to!string();
+    toRead = nextStr ~ ".." ~ lastStr;
   }
 
   long[4] getProgress() {
@@ -466,43 +477,62 @@ void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date start
   if (reset)
     lastModDate = startDate;
   // Initialize the day offsets we'll use to do our calculations
-  long targetDayOld = (lastModDate - startDate).total!"days" + 1;
-  long targetDayNew = (todaysDate - startDate).total!"days" + 1;
   long totalDays = (endDate - startDate).total!"days" + 1;
+  long lastDay = (lastModDate - startDate).total!"days" + 1;
+  if (lastDay > totalDays)
+    lastDay = totalDays;
+  long today = (todaysDate - startDate).total!"days" + 1;
+  if (today > totalDays)
+    today = totalDays;
+  long tomorrow = today + 1;
+  if (tomorrow > totalDays)
+    tomorrow = totalDays;
 
   void updateRecord(ref SectionSpec record, ReadingSection section, long daysRead) {
     long[4] progress = record.getProgress();
-    long readThrough = progress[2];
     long multiplicity = progress[3];
-    long daysBehind = record.getBehind()[1];
+    long daysBehind = record.getBehind().days;
     auto chapterByDay = section.byDay(totalDays, multiplicity);
     assert(isRandomAccessRange!(typeof(chapterByDay)));
 
-    long curDayOld = targetDayOld - daysBehind;
+    long lastCurDay = lastDay - daysBehind;
     if (reset) {
-      curDayOld = 0;
+      lastCurDay = 0;
       if (daysRead == 0)
         daysRead = 1;
-    } else if (curDayOld + daysRead > totalDays) {
-      daysRead = totalDays - curDayOld;
+    } else if (lastCurDay + daysRead > totalDays) {
+      daysRead = totalDays - lastCurDay;
     }
-    long curDayNew = curDayOld + daysRead;
+    long currentDay = lastCurDay + daysRead;
+    if (currentDay > totalDays)
+      currentDay = totalDays;
 
-    long nextDay = curDayNew + 1; // handle chaptersToRead issue here by limiting nextDay depending on totalDays
-    if (curDayNew >= totalDays)
-      nextDay--;
+    long nextDay = currentDay + 1; // handle chaptersToRead issue here by limiting nextDay depending on totalDays
+    if (nextDay > totalDays)
+      nextDay = totalDays;
 
-    if (targetDayNew > chapterByDay.length)
-      targetDayNew = chapterByDay.length;
+    Chapter lastCurChapter = chapterByDay[lastCurDay];
+    Chapter curChapter = chapterByDay[currentDay];
+    Chapter nextChapter = chapterByDay[nextDay];
+    Chapter targetChapter = chapterByDay[today];
+    Chapter tomorrowsChapter = chapterByDay[tomorrow];
 
-    readThrough = (chapterByDay[curDayNew].planID - 1) / section.totalChapters + 1;
+    long readThrough = (curChapter.planID - 1) / section.totalChapters + 1;
+    long chaptersBehind = targetChapter.planID - curChapter.planID;
+    daysBehind = today - currentDay;
+    long chaptersRead = curChapter.planID - lastCurChapter.planID;
+    long chaptersToReadNext = nextChapter.planID - curChapter.planID;
+    long chaptersToReadTomorrow = tomorrowsChapter.planID - targetChapter.planID;
 
-    record.current = chapterByDay[curDayNew].name;
-    record.target = chapterByDay[targetDayNew].name;
-    record.setBehind(chapterByDay[targetDayNew].planID - chapterByDay[curDayNew].planID, targetDayNew - curDayNew);
-    record.setLastRead(chapterByDay[curDayNew].planID - chapterByDay[curDayOld].planID, daysRead);
-    record.setToRead(chapterByDay[nextDay].planID - chapterByDay[curDayNew].planID);
-    record.setProgress(chapterByDay[curDayNew].secID, section.totalChapters, readThrough, multiplicity);
+    record.current = curChapter.name;
+    record.target = targetChapter.name;
+    record.setBehind(chaptersBehind, daysBehind);
+    record.setLastRead(chaptersRead, daysRead);
+    if (nextDay >= tomorrow || today == totalDays)
+      record.setToRead(chaptersToReadNext);
+    else
+      record.setToRead(chaptersToReadNext, chaptersToReadTomorrow);
+    record.setProgress(curChapter.secID, section.totalChapters, readThrough, multiplicity);
   }
 
   return &updateRecord;
