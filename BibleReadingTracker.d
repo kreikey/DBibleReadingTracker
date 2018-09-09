@@ -1,4 +1,4 @@
-#!/usr/bin/env rdmd -I..
+#!/usr/bin/env rdmd
 
 import std.stdio;
 import std.datetime;
@@ -8,8 +8,9 @@ import std.conv;
 import std.string;
 import std.range;
 import core.exception;
+//import sdlang;
 
-string[] books = [
+immutable string[] books = [
   "Genesis",
   "Exodus",
   "Leviticus",
@@ -78,7 +79,7 @@ string[] books = [
   "Revelation"
 ];
 
-ulong[] chapters = [
+immutable ulong[] chapters = [
   50,
   40,
   27,
@@ -147,10 +148,10 @@ ulong[] chapters = [
   22
 ];
 
-immutable ulong[string] idByBook;
+immutable ulong[immutable(string)] idByBook;
 
 static this() {
-  idByBook = zip(books, iota(0, books.length)).assocArray();
+  idByBook = books.zip(iota(0, books.length)).assocArray();
 }
 
 struct BookRange {
@@ -274,23 +275,14 @@ struct ReadingSection {
     foreach (bookRange; bookRangeList)
       bookIDs ~= iota(idByBook[bookRange.start], idByBook[bookRange.end] + 1).array();
     
-    totalChapters = bookIDs.map!(a => chapters[a]).sum();
+    totalChapters = bookIDs.map!(chaptersOf).sum();
   } 
 
-  string decodeChapterID(long chapterID) {
-    long index;
-    ulong chapter;
-    ulong savedID;
+  string decodeChapterID(ulong chapterID) {
+    auto bookChNdx = bookIDs.zip(bookIDs.map!(chaptersOf).cumulativeFold!(sum2)()).find!(a => a[1] >= chapterID).front;
+    ulong chapter = chapterID - (bookChNdx[1] - chapters[bookChNdx[0]]);
 
-    foreach (bookID; bookIDs) {
-      index += chapters[bookID];
-      if (chapterID <= index) {
-        savedID = bookID;
-        chapter = chapters[bookID] - index + chapterID;
-        break;
-      }
-    }
-    return format("%s %d", books[savedID], chapter);
+    return format("%s %d", books[bookChNdx[0]], chapter);
   }
 
   long encodeChapterID(string bookAndChapter) {
@@ -305,14 +297,7 @@ struct ReadingSection {
 
     ulong bookID = idByBook[bookName];
 
-    foreach (id; bookIDs) {
-      if (id == bookID)
-        break;
-      index += chapters[id];
-    }
-    
-    index += chapter;
-    return index;
+    return bookIDs.until(bookID).map!(chaptersOf).sum() + chapter;
   }
 
   auto byDay(ulong totalDays, ulong multiplicity) {
@@ -574,5 +559,17 @@ bool isActive(SectionSpec record) {
   long chaptersRead = (progress[2] - 1) * progress[1] + progress[0];
 
   return (chaptersRead < totalChapters);
+}
+
+string nameOf(ulong id) {
+  return books[id];
+}
+
+ulong chaptersOf(ulong id) {
+  return chapters[id];
+}
+
+ulong sum2(ulong a, ulong b) {
+  return a + b;
 }
 
