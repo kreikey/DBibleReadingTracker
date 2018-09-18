@@ -26,7 +26,7 @@ Don't worry about the actual values in the table. It will be reset when you star
 Define your reading sections:
 - copy readingSections.sdl into your home directory or wherever you will call the program from
 - define your sections which correspond to the sections column in your reading table
-- define each section as a list of bookranges where "start" is the first book in the range and "end" is the last book
+- define each section as a list of bookranges where "first" is the first book in the range and "last" is the last book
 
 The list of valid books in their order is in the comments in the provided readingSections.sdl file.
 You can put as many bookranges in each section as you want, and they can even overlap if you want.

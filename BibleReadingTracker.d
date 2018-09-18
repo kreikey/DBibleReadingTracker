@@ -155,8 +155,8 @@ static this() {
 }
 
 struct BookRange {
-  string start;
-  string end;
+  string first;
+  string last;
 }
 
 struct ChaptersDays {
@@ -273,7 +273,7 @@ struct ReadingSection {
   
   this(BookRange[] bookRangeList) {
     foreach (bookRange; bookRangeList)
-      bookIDs ~= iota(idByBook[bookRange.start], idByBook[bookRange.end] + 1).array();
+      bookIDs ~= iota(idByBook[bookRange.first], idByBook[bookRange.last] + 1).array();
     
     totalChapters = bookIDs.map!(chaptersOf).sum();
   } 
@@ -527,9 +527,9 @@ ReadingSection[string] getSectionsFromFile(string filename) {
     BookRange[] bookRanges = [];
 
     foreach (bookrange; section.tags["bookrange"]) {
-      string start = bookrange.expectAttribute!string("start");
-      string end = bookrange.expectAttribute!string("end");
-      bookRanges ~= BookRange(start, end);
+      string first = bookrange.expectAttribute!string("first");
+      string last = bookrange.expectAttribute!string("last");
+      bookRanges ~= BookRange(first, last);
     }
 
     auto readingSection = ReadingSection(bookRanges);

@@ -1,15 +1,15 @@
 section "Old Testament" {
-  bookrange start="Genesis" end="Job"
-  bookrange start="Ecclesiastes" end="Malachi"
+  bookrange first="Genesis" last="Job"
+  bookrange first="Ecclesiastes" last="Malachi"
 }
 section "New Testament" {
-  bookrange start="Matthew" end="Revelation"
+  bookrange first="Matthew" last="Revelation"
 }
 section "Psalms" {
-  bookrange start="Psalms" end="Psalms"
+  bookrange first="Psalms" last="Psalms"
 }
 section "Proverbs" {
-  bookrange start="Proverbs" end="Proverbs"
+  bookrange first="Proverbs" last="Proverbs"
 }
 
 #  Valid books, in their order, are the following:
