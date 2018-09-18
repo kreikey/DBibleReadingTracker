@@ -1,13 +1,13 @@
 #!/usr/bin/env rdmd -i -I..
 
-import std.stdio;
-import std.datetime;
-import std.algorithm;
-import std.csv;
-import std.conv;
-import std.string;
-import std.range;
-import core.exception;
+import std.stdio: stdin, writeln, writefln;
+import std.datetime: Date, Clock, Month;
+import std.algorithm: map, until, fill, sum, cumulativeFold, find;
+import std.csv: csvReader;
+import std.conv: to;
+import std.string: format, indexOf;
+import std.range: zip, split, join, iota, retro, array, assocArray, lockstep, isRandomAccessRange;
+import core.exception: RangeError;
 import sdlang;
 
 immutable string[] books = [

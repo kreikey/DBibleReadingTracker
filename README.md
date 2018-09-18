@@ -7,14 +7,32 @@ It receives a table of text and updates it based on the date, and the passed-in 
 
 It has hard-coded data structures defining the books in the Bible and the number of chapters in each book.
 
-It has hard-coded data structures defining each Bible reading section as a list of ranges of books.
+It parses the "readingSections.sdl" file defining each Bible reading section as a list of ranges of books.
 
 It is distributed under the terms of the GPL V3 License.
 
 It works. For me.
 
-To make it work for you, set tabstop to 20 with `:set tabstop=20` in Vim.
-Also, make a macro to call the thing, by copying the following line into a register:
+To make it work for you:
+- copy sampleTable.txt into your own file
+- open your file in Vim
+- set tabstop to 20 with `:set tabstop=20`
+- make a row for each section
+- set the very last value, the one in the r/m column, to the "multiplicity" you want, i.e. how many times you want to read through that section in the given timeframe.
+- set your Start and End dates, then to reset the table, set the Date field to any date before the Start date.
+
+Don't worry about the actual values in the table. It will be reset when you start your reading plan.
+
+Define your reading sections:
+- copy readingSections.sdl into your home directory or wherever you will call the program from
+- define your sections which correspond to the sections column in your reading table
+- define each section as a list of bookranges where "start" is the first book in the range and "end" is the last book
+
+The list of valid books in their order is in the comments in the provided readingSections.sdl file.
+You can put as many bookranges in each section as you want, and they can even overlap if you want.
+The program will simply enumerate all the books in the ranges and put them in a list.
+
+Make a macro to call the thing, by copying the following line into a register:
 
 ```
 1G11!!BibleReadingTracker 
@@ -26,6 +44,8 @@ But you must not include the newline character! So place the cursor at the begin
 
 That means "into register b, yank everything to the end of the line inclusively."
 Use mksession to save these changes into a session that you can reuse later.
+
+Define your Bible reading sections in readingSections.sdl, and put that file into the directory 
 
 Run the macro with `@b`
 
@@ -42,14 +62,10 @@ Or just don't pass any arguments and just hit Enter if you've done one day's wor
 
 To compile the program, run `dmd DBibleReadingTracker.d` from the OS command line.
 On unix-like systems, you can also run the program as a script by making it executable and running it as
-`./DBibleReadingTracker.d`
+`./BibleReadingTracker.d`
+Running the program as a script is no longer supported because that would require you to move the sdlang import folder into the same 
+directory as the BibleReadingTracker.d file, which is annoying and impractical (but you can do it if you want),
+and we now load the reading sections from a file, reducing the need to recompile.
 (To make it executable, first run `chmod 755 DBibleReadingTracker.d` or similar.)
 Put either executable in your PATH variable and use it.
 
-Use the sampleTable.txt file as a base to start your Bible reading program.
-Change the Date field before the Start date to reset the table.
-At the end of the Progress column is a "multiplicity" variable that determines how many times you want to read through each 
-section in the given time frame. Change it to whatever works for you.
-Change the start and end dates to whatever works for you.
-Edit the source file DBibleReadingTracker.d to change the Bible Reading Sections to whatever works for you.
-Each Bible Reading Section corresponds to a row in your table, by the the name in the "section" column.
