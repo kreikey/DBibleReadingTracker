@@ -1,4 +1,4 @@
-#!/usr/bin/env rdmd
+#!/usr/bin/env rdmd -i -I..
 
 import std.stdio;
 import std.datetime;
@@ -8,7 +8,7 @@ import std.conv;
 import std.string;
 import std.range;
 import core.exception;
-//import sdlang;
+import sdlang;
 
 immutable string[] books = [
   "Genesis",
@@ -426,13 +426,7 @@ void main(string[] args) {
   }
   daysElapsed += (todaysDate - lastModDate).total!"days";
 
-  ReadingSection[string] sectionByName = [
-    "Old Testament" : ReadingSection([BookRange("Genesis", "Job"),
-        BookRange("Ecclesiastes", "Malachi")]),
-    "New Testament" : ReadingSection([BookRange("Matthew", "Revelation")]),
-    "Psalms" : ReadingSection([BookRange("Psalms", "Psalms")]),
-    "Proverbs" : ReadingSection([BookRange("Proverbs", "Proverbs")])
-  ];
+  ReadingSection[string] sectionByName = getSectionsFromFile("readingSections.sdl");
 
   // Update table with days read
   foreach(ref record, daysRead; lockstep(sectionRecords, daysRead)) {
@@ -521,6 +515,28 @@ void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date start
   }
 
   return &updateRecord;
+}
+
+ReadingSection[string] getSectionsFromFile(string filename) {
+  Tag root = parseFile(filename);
+  ReadingSection[string] sectionByName;
+
+  foreach (section; root.tags["section"]) {
+    string sectionName = section.expectValue!string;
+
+    BookRange[] bookRanges = [];
+
+    foreach (bookrange; section.tags["bookrange"]) {
+      string start = bookrange.expectAttribute!string("start");
+      string end = bookrange.expectAttribute!string("end");
+      bookRanges ~= BookRange(start, end);
+    }
+
+    auto readingSection = ReadingSection(bookRanges);
+    sectionByName[sectionName] = readingSection;
+  }
+
+  return sectionByName;
 }
 
 string toShortHRString(Date someDate)
