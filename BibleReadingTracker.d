@@ -552,23 +552,6 @@ Date fromShortHRStringToDate(string dateStr)
   return Date(mdy[2] + 2000, mdy[0], mdy[1]);
 }
 
-string toHRString(Date someDate)
-{
-  with (someDate) {
-    return format("%s/%s/%s", month, day, year);
-  }
-}
-
-Date fromHRStringToDate(string dateStr)
-{
-  string[] mdyStr = dateStr.split("/");
-  int[] mdy;
-  Month m = mdyStr[0].to!(Month);
-  mdy ~= m;
-  mdy ~= mdyStr[1 .. $].to!(int[]);
-  return Date(mdy[2], mdy[0], mdy[1]);
-}
-
 bool isActive(SectionSpec record) {
   long[4] progress = record.getProgress();
   long totalChapters = progress[3] * progress[1];
