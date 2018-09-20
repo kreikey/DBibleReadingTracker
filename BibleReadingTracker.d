@@ -300,77 +300,73 @@ struct ReadingSection {
     return bookIDs.until(bookID).map!(chaptersOf).sum() + chapter;
   }
 
-  private static struct ByDayResult {
-    ulong chaptersInSection;
-    ulong totalChapters;
-    ulong frontDay;
-    ulong backDay;
-    bool empty = true;
-    ulong length;
-    ReadingSection* parent;
-
-    this(ulong _totalDays, ulong _multiplicity, ReadingSection* parent) { 
-      chaptersInSection = parent.totalChapters;
-      totalChapters = chaptersInSection * _multiplicity;
-      frontDay = 1;
-      backDay = _totalDays;
-      empty = backDay != frontDay;
-      length = _totalDays + 1;
-    }
-
-    Chapter front() @property {
-      ulong planID = frontDay * totalChapters / (length - 1);
-      ulong secID = (planID - 1) % chaptersInSection + 1;
-      string chapterName = parent.decodeChapterID(secID);
-      return Chapter(chapterName, planID, secID);
-    }
-    Chapter back() @property {
-      ulong planID = backDay * totalChapters / (length - 1);
-      ulong secID = (planID - 1) % chaptersInSection + 1;
-      string chapterName = parent.decodeChapterID(secID);
-      return Chapter(chapterName, planID, secID);
-    }
-
-    void popFront() {
-      if (empty == false)
-        frontDay++;
-      if (frontDay == backDay)
-        empty = true;
-    }
-    void popBack() {
-      if (empty == false)
-        backDay--;
-      if (backDay == frontDay)
-        empty = true;
-    }
-
-    auto save() @property {
-      auto copy = this;
-      return copy;
-    }
-
-    Chapter opIndex(size_t currentDay) {
-      throw new Exception("");
-      if (currentDay >= length)
-        throw new RangeError("BibleReadingTracker.d");
-      if (currentDay < 0)
-        throw new RangeError("BibleReadingTracker.d");
-      ulong planID = currentDay * totalChapters / (length - 1);
-      ulong secID = (planID - 1) % chaptersInSection + 1;
-      string chapterName = parent.decodeChapterID(secID);
-      return Chapter(chapterName, planID, secID);
-    }
-
-    ulong opDollar() {
-      return length;
-    }
-  }
-
   auto byDay(ulong totalDays, ulong multiplicity) {
-    //ReadingSection* parent = &this;
+    ReadingSection* parent = &this;
 
+    struct Result {
+      ulong chaptersInSection;
+      ulong totalChapters;
+      ulong frontDay;
+      ulong backDay;
+      bool empty = true;
+      ulong length;
 
-    return ByDayResult(totalDays, multiplicity, &this);
+      this(ulong _totalDays, ulong _multiplicity) { 
+        chaptersInSection = parent.totalChapters;
+        totalChapters = chaptersInSection * _multiplicity;
+        frontDay = 1;
+        backDay = _totalDays;
+        empty = backDay != frontDay;
+        length = _totalDays + 1;
+      }
+
+      Chapter front() @property {
+        ulong planID = frontDay * totalChapters / (length - 1);
+        ulong secID = (planID - 1) % chaptersInSection + 1;
+        string chapterName = parent.decodeChapterID(secID);
+        return Chapter(chapterName, planID, secID);
+      }
+      Chapter back() @property {
+        ulong planID = backDay * totalChapters / (length - 1);
+        ulong secID = (planID - 1) % chaptersInSection + 1;
+        string chapterName = parent.decodeChapterID(secID);
+        return Chapter(chapterName, planID, secID);
+      }
+
+      void popFront() {
+        if (empty == false)
+          frontDay++;
+        if (frontDay == backDay)
+          empty = true;
+      }
+      void popBack() {
+        if (empty == false)
+          backDay--;
+        if (backDay == frontDay)
+          empty = true;
+      }
+
+      auto save() @property {
+        auto copy = this;
+        return copy;
+      }
+
+      Chapter opIndex(size_t currentDay) {
+        if (currentDay >= length)
+          throw new RangeError("BibleReadingTracker.d");
+        if (currentDay < 0)
+          throw new RangeError("BibleReadingTracker.d");
+        ulong planID = currentDay * totalChapters / (length - 1);
+        ulong secID = (planID - 1) % chaptersInSection + 1;
+        string chapterName = parent.decodeChapterID(secID);
+        return Chapter(chapterName, planID, secID);
+      }
+
+      ulong opDollar() {
+        return length;
+      }
+    }
+    return Result(totalDays, multiplicity);
   }
 
 }
