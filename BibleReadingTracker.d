@@ -228,34 +228,34 @@ struct DateRowSpec {
   
   Date getLastModDate() {
     string datePortion = lastModDateStr.split(" ")[1];
-    return fromShortHRStringToDate(datePortion);
+    return datePortion.toDate();
   }
 
   void setLastModDate(Date date) {
     string[] datePieces = lastModDateStr.split(" ");
-    datePieces[1] = date.toShortHRString();
+    datePieces[1] = date.toString();
     lastModDateStr = datePieces.join(" ");
   }
 
   Date getStartDate() {
     string datePortion = startDateStr.split(" ")[1];
-    return fromShortHRStringToDate(datePortion);
+    return datePortion.toDate();
   }
 
   void setStartDate(Date date) {
     string[] datePieces = startDateStr.split(" ");
-    datePieces[1] = date.toShortHRString();
+    datePieces[1] = date.toString();
     startDateStr = datePieces.join(" ");
   }
 
   Date getEndDate() {
     string datePortion = endDateStr.split(" ")[1];
-    return fromShortHRStringToDate(datePortion);
+    return datePortion.toDate();
   }
 
   void setEndDate(Date date) {
     string[] datePieces = endDateStr.split(" ");
-    datePieces[1] = date.toShortHRString();
+    datePieces[1] = date.toString();
     endDateStr = datePieces.join(" ");
   }
 }
@@ -300,73 +300,77 @@ struct ReadingSection {
     return bookIDs.until(bookID).map!(chaptersOf).sum() + chapter;
   }
 
-  auto byDay(ulong totalDays, ulong multiplicity) {
-    ReadingSection* parent = &this;
+  private static struct ByDayResult {
+    ulong chaptersInSection;
+    ulong totalChapters;
+    ulong frontDay;
+    ulong backDay;
+    bool empty = true;
+    ulong length;
+    ReadingSection* parent;
 
-    struct Result {
-      ulong chaptersInSection;
-      ulong totalChapters;
-      ulong frontDay;
-      ulong backDay;
-      bool empty = true;
-      ulong length;
-
-      this(ulong _totalDays, ulong _multiplicity) { 
-        chaptersInSection = parent.totalChapters;
-        totalChapters = chaptersInSection * _multiplicity;
-        frontDay = 1;
-        backDay = _totalDays;
-        empty = backDay != frontDay;
-        length = _totalDays + 1;
-      }
-
-      Chapter front() @property {
-        ulong planID = frontDay * totalChapters / (length - 1);
-        ulong secID = (planID - 1) % chaptersInSection + 1;
-        string chapterName = parent.decodeChapterID(secID);
-        return Chapter(chapterName, planID, secID);
-      }
-      Chapter back() @property {
-        ulong planID = backDay * totalChapters / (length - 1);
-        ulong secID = (planID - 1) % chaptersInSection + 1;
-        string chapterName = parent.decodeChapterID(secID);
-        return Chapter(chapterName, planID, secID);
-      }
-
-      void popFront() {
-        if (empty == false)
-          frontDay++;
-        if (frontDay == backDay)
-          empty = true;
-      }
-      void popBack() {
-        if (empty == false)
-          backDay--;
-        if (backDay == frontDay)
-          empty = true;
-      }
-
-      auto save() @property {
-        auto copy = this;
-        return copy;
-      }
-
-      Chapter opIndex(size_t currentDay) {
-        if (currentDay >= length)
-          throw new RangeError("BibleReadingTracker.d");
-        if (currentDay < 0)
-          throw new RangeError("BibleReadingTracker.d");
-        ulong planID = currentDay * totalChapters / (length - 1);
-        ulong secID = (planID - 1) % chaptersInSection + 1;
-        string chapterName = parent.decodeChapterID(secID);
-        return Chapter(chapterName, planID, secID);
-      }
-
-      ulong opDollar() {
-        return length;
-      }
+    this(ulong _totalDays, ulong _multiplicity, ReadingSection* parent) { 
+      chaptersInSection = parent.totalChapters;
+      totalChapters = chaptersInSection * _multiplicity;
+      frontDay = 1;
+      backDay = _totalDays;
+      empty = backDay != frontDay;
+      length = _totalDays + 1;
     }
-    return Result(totalDays, multiplicity);
+
+    Chapter front() @property {
+      ulong planID = frontDay * totalChapters / (length - 1);
+      ulong secID = (planID - 1) % chaptersInSection + 1;
+      string chapterName = parent.decodeChapterID(secID);
+      return Chapter(chapterName, planID, secID);
+    }
+    Chapter back() @property {
+      ulong planID = backDay * totalChapters / (length - 1);
+      ulong secID = (planID - 1) % chaptersInSection + 1;
+      string chapterName = parent.decodeChapterID(secID);
+      return Chapter(chapterName, planID, secID);
+    }
+
+    void popFront() {
+      if (empty == false)
+        frontDay++;
+      if (frontDay == backDay)
+        empty = true;
+    }
+    void popBack() {
+      if (empty == false)
+        backDay--;
+      if (backDay == frontDay)
+        empty = true;
+    }
+
+    auto save() @property {
+      auto copy = this;
+      return copy;
+    }
+
+    Chapter opIndex(size_t currentDay) {
+      throw new Exception("");
+      if (currentDay >= length)
+        throw new RangeError("BibleReadingTracker.d");
+      if (currentDay < 0)
+        throw new RangeError("BibleReadingTracker.d");
+      ulong planID = currentDay * totalChapters / (length - 1);
+      ulong secID = (planID - 1) % chaptersInSection + 1;
+      string chapterName = parent.decodeChapterID(secID);
+      return Chapter(chapterName, planID, secID);
+    }
+
+    ulong opDollar() {
+      return length;
+    }
+  }
+
+  auto byDay(ulong totalDays, ulong multiplicity) {
+    //ReadingSection* parent = &this;
+
+
+    return ByDayResult(totalDays, multiplicity, &this);
   }
 
 }
@@ -539,34 +543,17 @@ ReadingSection[string] getSectionsFromFile(string filename) {
   return sectionByName;
 }
 
-string toShortHRString(Date someDate)
+string toString(Date someDate)
 {
   with (someDate) {
     return format("%d/%d/%d", month, day, year - 2000);
   }
 }
 
-Date fromShortHRStringToDate(string dateStr)
+Date toDate(string dateStr)
 {
   int[] mdy = dateStr.split("/").to!(int[]);
   return Date(mdy[2] + 2000, mdy[0], mdy[1]);
-}
-
-string toHRString(Date someDate)
-{
-  with (someDate) {
-    return format("%s/%s/%s", month, day, year);
-  }
-}
-
-Date fromHRStringToDate(string dateStr)
-{
-  string[] mdyStr = dateStr.split("/");
-  int[] mdy;
-  Month m = mdyStr[0].to!(Month);
-  mdy ~= m;
-  mdy ~= mdyStr[1 .. $].to!(int[]);
-  return Date(mdy[2], mdy[0], mdy[1]);
 }
 
 bool isActive(SectionSpec record) {
