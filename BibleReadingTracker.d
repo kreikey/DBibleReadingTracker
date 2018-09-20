@@ -228,34 +228,34 @@ struct DateRowSpec {
   
   Date getLastModDate() {
     string datePortion = lastModDateStr.split(" ")[1];
-    return datePortion.toDate();
+    return fromShortHRStringToDate(datePortion);
   }
 
   void setLastModDate(Date date) {
     string[] datePieces = lastModDateStr.split(" ");
-    datePieces[1] = date.toString();
+    datePieces[1] = date.toShortHRString();
     lastModDateStr = datePieces.join(" ");
   }
 
   Date getStartDate() {
     string datePortion = startDateStr.split(" ")[1];
-    return datePortion.toDate();
+    return fromShortHRStringToDate(datePortion);
   }
 
   void setStartDate(Date date) {
     string[] datePieces = startDateStr.split(" ");
-    datePieces[1] = date.toString();
+    datePieces[1] = date.toShortHRString();
     startDateStr = datePieces.join(" ");
   }
 
   Date getEndDate() {
     string datePortion = endDateStr.split(" ")[1];
-    return datePortion.toDate();
+    return fromShortHRStringToDate(datePortion);
   }
 
   void setEndDate(Date date) {
     string[] datePieces = endDateStr.split(" ");
-    datePieces[1] = date.toString();
+    datePieces[1] = date.toShortHRString();
     endDateStr = datePieces.join(" ");
   }
 }
@@ -539,17 +539,34 @@ ReadingSection[string] getSectionsFromFile(string filename) {
   return sectionByName;
 }
 
-string toString(Date someDate)
+string toShortHRString(Date someDate)
 {
   with (someDate) {
     return format("%d/%d/%d", month, day, year - 2000);
   }
 }
 
-Date toDate(string dateStr)
+Date fromShortHRStringToDate(string dateStr)
 {
   int[] mdy = dateStr.split("/").to!(int[]);
   return Date(mdy[2] + 2000, mdy[0], mdy[1]);
+}
+
+string toHRString(Date someDate)
+{
+  with (someDate) {
+    return format("%s/%s/%s", month, day, year);
+  }
+}
+
+Date fromHRStringToDate(string dateStr)
+{
+  string[] mdyStr = dateStr.split("/");
+  int[] mdy;
+  Month m = mdyStr[0].to!(Month);
+  mdy ~= m;
+  mdy ~= mdyStr[1 .. $].to!(int[]);
+  return Date(mdy[2], mdy[0], mdy[1]);
 }
 
 bool isActive(SectionSpec record) {
