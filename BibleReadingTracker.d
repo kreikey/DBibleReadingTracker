@@ -9,6 +9,7 @@ import std.string: format, indexOf;
 import std.range: zip, split, join, iota, retro, array, assocArray, lockstep, isRandomAccessRange;
 import core.exception: RangeError;
 import sdlang;
+import std.math;
 
 immutable string[] books = [
   "Genesis",
@@ -152,6 +153,9 @@ immutable ulong[immutable(string)] idByBook;
 
 static this() {
   idByBook = books.zip(iota(0, books.length)).assocArray();
+  resetIeeeFlags();
+  FloatingPointControl fpctrl;
+  fpctrl.rounding(RoundingMode.roundUp);
 }
 
 struct BookRange {
@@ -321,13 +325,13 @@ struct ReadingSection {
       }
 
       Chapter front() @property {
-        ulong planID = frontDay * totalChapters / (length - 1);
+        ulong planID = lrint(frontDay * totalChapters / (length - 1));
         ulong secID = (planID - 1) % chaptersInSection + 1;
         string chapterName = parent.decodeChapterID(secID);
         return Chapter(chapterName, planID, secID);
       }
       Chapter back() @property {
-        ulong planID = backDay * totalChapters / (length - 1);
+        ulong planID = lrint(backDay * totalChapters / (length - 1));
         ulong secID = (planID - 1) % chaptersInSection + 1;
         string chapterName = parent.decodeChapterID(secID);
         return Chapter(chapterName, planID, secID);
@@ -356,7 +360,7 @@ struct ReadingSection {
           throw new RangeError("BibleReadingTracker.d");
         if (currentDay < 0)
           throw new RangeError("BibleReadingTracker.d");
-        ulong planID = currentDay * totalChapters / (length - 1);
+        ulong planID = lrint(currentDay * totalChapters / (length - 1));
         ulong secID = (planID - 1) % chaptersInSection + 1;
         string chapterName = parent.decodeChapterID(secID);
         return Chapter(chapterName, planID, secID);
