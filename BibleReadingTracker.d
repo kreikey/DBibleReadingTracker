@@ -155,7 +155,7 @@ static this() {
   idByBook = books.zip(iota(0, books.length)).assocArray();
   resetIeeeFlags();
   FloatingPointControl fpctrl;
-  fpctrl.rounding(RoundingMode.roundUp);
+  //fpctrl.rounding(RoundingMode.roundUp);
 }
 
 struct BookRange {
@@ -325,13 +325,13 @@ struct ReadingSection {
       }
 
       Chapter front() @property {
-        ulong planID = lrint(frontDay * totalChapters / (length - 1));
+        ulong planID = lrint(real(frontDay) * totalChapters / (length - 1));
         ulong secID = (planID - 1) % chaptersInSection + 1;
         string chapterName = parent.decodeChapterID(secID);
         return Chapter(chapterName, planID, secID);
       }
       Chapter back() @property {
-        ulong planID = lrint(backDay * totalChapters / (length - 1));
+        ulong planID = lrint(real(backDay) * totalChapters / (length - 1));
         ulong secID = (planID - 1) % chaptersInSection + 1;
         string chapterName = parent.decodeChapterID(secID);
         return Chapter(chapterName, planID, secID);
@@ -360,7 +360,7 @@ struct ReadingSection {
           throw new RangeError("BibleReadingTracker.d");
         if (currentDay < 0)
           throw new RangeError("BibleReadingTracker.d");
-        ulong planID = lrint(currentDay * totalChapters / (length - 1));
+        ulong planID = lrint(real(currentDay) * totalChapters / (length - 1));
         ulong secID = (planID - 1) % chaptersInSection + 1;
         string chapterName = parent.decodeChapterID(secID);
         return Chapter(chapterName, planID, secID);
