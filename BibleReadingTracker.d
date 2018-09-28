@@ -430,11 +430,11 @@ void main(string[] args) {
   }
   daysElapsed += (todaysDate - lastModDate).total!"days";
 
-  ReadingSection[string] sectionByName = getSectionsFromFile("readingSections.sdl");
+  ReadingSection[string] sectionsByName = getSectionsFromFile("readingSections.sdl");
 
   // Update table with days read
   foreach(ref record, daysRead; lockstep(sectionRecords, daysRead)) {
-    updateRecord(record, sectionByName[record.section], daysRead);
+    updateRecord(record, sectionsByName[record.section], daysRead);
   }
 
   // Update last-modified date
@@ -523,7 +523,7 @@ void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date start
 
 ReadingSection[string] getSectionsFromFile(string filename) {
   Tag root = parseFile(filename);
-  ReadingSection[string] sectionByName;
+  ReadingSection[string] sectionsByName;
 
   foreach (section; root.tags["section"]) {
     string sectionName = section.expectValue!string;
@@ -537,10 +537,10 @@ ReadingSection[string] getSectionsFromFile(string filename) {
     }
 
     auto readingSection = ReadingSection(bookRanges);
-    sectionByName[sectionName] = readingSection;
+    sectionsByName[sectionName] = readingSection;
   }
 
-  return sectionByName;
+  return sectionsByName;
 }
 
 string toShortHRString(Date someDate)
