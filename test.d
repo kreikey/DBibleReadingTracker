@@ -284,11 +284,11 @@ void main(string[] args) {
   //writeln("-----");
 
   //File readingSectionsFile = File("readingSections2.sdl");
-  //ReadingSection[string] sectionByName = getSectionsFromFile1("readingSections2.sdl");
-  ReadingSection[string] sectionByName = getSectionsFromFile("readingSections.sdl");
-  //writeln(sectionByName);
-  //readingSections.rawWrite(sectionByName);
-  //ReadingSection[string] sectionByName = [
+  //ReadingSection[string] sectionsByName = getSectionsFromFile1("readingSections2.sdl");
+  ReadingSection[string] sectionsByName = getSectionsFromFile("readingSections.sdl");
+  //writeln(sectionsByName);
+  //readingSections.rawWrite(sectionsByName);
+  //ReadingSection[string] sectionsByName = [
     //"Old Testament" : ReadingSection([BookRange("Genesis", "Job"),
         //BookRange("Ecclesiastes", "Malachi")]),
     //"New Testament" : ReadingSection([BookRange("Matthew", "Revelation")]),
@@ -299,14 +299,14 @@ void main(string[] args) {
   //auto output = File("sectionsOut.txt", "w");
   //root.all.tags["ReadingSection"].each!(t => output.writeln(t.getFullName()));
 
-  //writeln(sectionByName.to!string());
-  //sectionByName.to!string().toFile("readingSections.txt");
+  //writeln(sectionsByName.to!string());
+  //sectionsByName.to!string().toFile("readingSections.txt");
 
 
 }
 
 ReadingSection[string] getSectionsFromFile1(string filename) {
-  ReadingSection[string] sectionByNameOld = [
+  ReadingSection[string] sectionsByNameOld = [
     "Old Testament" : ReadingSection([BookRange("Genesis", "Job"),
         BookRange("Ecclesiastes", "Malachi")]),
     "New Testament" : ReadingSection([BookRange("Matthew", "Revelation")]),
@@ -315,7 +315,7 @@ ReadingSection[string] getSectionsFromFile1(string filename) {
   ];
 
   Tag root = parseFile(filename);
-  ReadingSection[string] sectionByName;
+  ReadingSection[string] sectionsByName;
 
   foreach (section; root.tags["section"]) {
     string sectionName = section.expectValue!string;
@@ -333,18 +333,18 @@ ReadingSection[string] getSectionsFromFile1(string filename) {
     }
     auto readingSection = ReadingSection(bookRanges);
 
-    sectionByName[sectionName] = readingSection;
+    sectionsByName[sectionName] = readingSection;
   }
 
-  writeln(sectionByName);
-  writeln(sectionByNameOld);
-  writeln(sectionByName == sectionByNameOld);
+  writeln(sectionsByName);
+  writeln(sectionsByNameOld);
+  writeln(sectionsByName == sectionsByNameOld);
 
-  return sectionByName;
+  return sectionsByName;
 }
 
 ReadingSection[string] getSectionsFromFile(string filename) {
-  //ReadingSection[string] sectionByNameOld = [
+  //ReadingSection[string] sectionsByNameOld = [
     //"Old Testament" : ReadingSection([BookRange("Genesis", "Job"),
         //BookRange("Ecclesiastes", "Malachi")]),
     //"New Testament" : ReadingSection([BookRange("Matthew", "Revelation")]),
@@ -353,7 +353,7 @@ ReadingSection[string] getSectionsFromFile(string filename) {
   //];
 
   Tag root = parseFile(filename);
-  ReadingSection[string] sectionByName;
+  ReadingSection[string] sectionsByName;
 
   foreach (section; root.tags["section"]) {
     string sectionName = section.expectValue!string;
@@ -369,14 +369,14 @@ ReadingSection[string] getSectionsFromFile(string filename) {
     }
     auto readingSection = ReadingSection(bookRanges);
 
-    sectionByName[sectionName] = readingSection;
+    sectionsByName[sectionName] = readingSection;
   }
 
-  //writeln(sectionByName);
-  //writeln(sectionByNameOld);
-  //writeln(sectionByName == sectionByNameOld);
+  //writeln(sectionsByName);
+  //writeln(sectionsByNameOld);
+  //writeln(sectionsByName == sectionsByNameOld);
 
-  return sectionByName;
+  return sectionsByName;
 }
 
 string nameOf(ulong id) {
