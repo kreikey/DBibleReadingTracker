@@ -1,17 +1,18 @@
 #!/usr/bin/env rdmd -i -I..
 
-import std.stdio: stdin, writeln, writefln;
-import std.datetime: Date, Clock, Month;
-import std.algorithm: map, until, fill, sum, cumulativeFold, find;
-import std.csv: csvReader;
-import std.conv: to;
-import std.string: format, indexOf;
-import std.range: zip, split, join, iota, retro, array, assocArray, lockstep, isRandomAccessRange;
-import core.exception: RangeError;
+import std.stdio;
+import std.datetime;
+import std.algorithm;
+import std.csv;
+import std.conv;
+import std.string;
+import std.range;
+import core.exception;
 import sdlang;
 import std.math;
+import std.typecons;
 
-immutable string[] books = [
+string[] books = [
   "Genesis",
   "Exodus",
   "Leviticus",
@@ -80,7 +81,7 @@ immutable string[] books = [
   "Revelation"
 ];
 
-immutable ulong[] chapters = [
+ulong[] chapters = [
   50,
   40,
   27,
@@ -149,10 +150,10 @@ immutable ulong[] chapters = [
   22
 ];
 
-immutable ulong[immutable(string)] idByBook;
+ulong[string] idByBook;
 
 static this() {
-  idByBook = books.zip(iota(0, books.length)).assocArray();
+  idByBook = books.enumerate.map!(reverse).assocArray();
   resetIeeeFlags();
 }
 
