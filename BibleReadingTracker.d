@@ -151,9 +151,11 @@ ulong[] chapters = [
 ];
 
 ulong[string] idByBook;
+ulong[string] chaptersByBook;
 
 static this() {
   idByBook = books.enumerate.map!(reverse).assocArray();
+  chaptersByBook = books.zip(chapters).assocArray();
   resetIeeeFlags();
 }
 
@@ -271,29 +273,31 @@ struct Chapter {
 }
 
 struct ReadingSection {
-  ulong[] bookIDs;
+  //ulong[] bookIDs;
+  string[] books;
   ulong totalChapters;
   
   this(BookRange[] bookRangeList) {
     foreach (bookRange; bookRangeList)
-      bookIDs ~= iota(idByBook[bookRange.first], idByBook[bookRange.last] + 1).array();
+      this.books ~= iota(idByBook[bookRange.first], idByBook[bookRange.last] + 1).map!(id => books[id]).array();
+      //bookIDs ~= iota(idByBook[bookRange.first], idByBook[bookRange.last] + 1).array();
     
-    totalChapters = bookIDs
-      .map!(a => chapters[a])
+    totalChapters = this.books.
+      map!(b => chaptersByBook[b])
       .sum();
   } 
 
   string decodeChapterID(ulong chapterID) {
-    auto bookChNdx = bookIDs
-      .zip(bookIDs
-          .map!(a => chapters[a])
-          .cumulativeFold!((a, b) => a + b)())
+    auto bookChapter = this.
+      books.zip(this.books
+        .map!(b => chaptersByBook[b])
+        .cumulativeFold!((a, b) => a + b)())
       .find!(a => a[1] >= chapterID)
       .front;
-    ulong bookID = bookChNdx[0];
-    ulong chapter = chapterID - (bookChNdx[1] - chapters[bookID]);
 
-    return format("%s %d", books[bookID], chapter);
+    ulong chapter = 1;
+
+    return format("%s %d", bookChapter[0], chapter);
   }
 
   long encodeChapterID(string bookAndChapter) {
@@ -308,9 +312,9 @@ struct ReadingSection {
 
     ulong bookID = idByBook[bookName];
 
-    return bookIDs
-      .until(bookID)
-      .map!(a => chapters[a])
+    return this.books
+      .until(bookName)
+      .map!(a => chapters[(idByBook(a)]))
       .sum() + chapter;
   }
 
