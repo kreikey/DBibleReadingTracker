@@ -154,8 +154,6 @@ immutable ulong[immutable(string)] idByBook;
 static this() {
   idByBook = books.zip(iota(0, books.length)).assocArray();
   resetIeeeFlags();
-  FloatingPointControl fpctrl;
-  //fpctrl.rounding(RoundingMode.roundUp);
 }
 
 struct BookRange {
