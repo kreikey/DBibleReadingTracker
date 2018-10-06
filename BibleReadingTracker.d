@@ -278,14 +278,22 @@ struct ReadingSection {
     foreach (bookRange; bookRangeList)
       bookIDs ~= iota(idByBook[bookRange.first], idByBook[bookRange.last] + 1).array();
     
-    totalChapters = bookIDs.map!(chaptersOf).sum();
+    totalChapters = bookIDs
+      .map!(a => chapters[a])
+      .sum();
   } 
 
   string decodeChapterID(ulong chapterID) {
-    auto bookChNdx = bookIDs.zip(bookIDs.map!(chaptersOf).cumulativeFold!(sum2)()).find!(a => a[1] >= chapterID).front;
-    ulong chapter = chapterID - (bookChNdx[1] - chapters[bookChNdx[0]]);
+    auto bookChNdx = bookIDs
+      .zip(bookIDs
+          .map!(a => chapters[a])
+          .cumulativeFold!((a, b) => a + b)())
+      .find!(a => a[1] >= chapterID)
+      .front;
+    ulong bookID = bookChNdx[0];
+    ulong chapter = chapterID - (bookChNdx[1] - chapters[bookID]);
 
-    return format("%s %d", books[bookChNdx[0]], chapter);
+    return format("%s %d", books[bookID], chapter);
   }
 
   long encodeChapterID(string bookAndChapter) {
@@ -300,7 +308,10 @@ struct ReadingSection {
 
     ulong bookID = idByBook[bookName];
 
-    return bookIDs.until(bookID).map!(chaptersOf).sum() + chapter;
+    return bookIDs
+      .until(bookID)
+      .map!(a => chapters[a])
+      .sum() + chapter;
   }
 
   auto byDay(ulong totalDays, ulong multiplicity) {
@@ -561,17 +572,5 @@ bool isActive(SectionSpec record) {
   long chaptersRead = (progress[2] - 1) * progress[1] + progress[0];
 
   return (chaptersRead < totalChapters);
-}
-
-string nameOf(ulong id) {
-  return books[id];
-}
-
-ulong chaptersOf(ulong id) {
-  return chapters[id];
-}
-
-ulong sum2(ulong a, ulong b) {
-  return a + b;
 }
 
