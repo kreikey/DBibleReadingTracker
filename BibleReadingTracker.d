@@ -340,6 +340,7 @@ struct ReadingSection {
         string chapterName = parent.decodeChapterID(secID);
         return Chapter(chapterName, planID, secID);
       }
+
       Chapter back() @property {
         ulong planID = lrint(real(backDay) * totalChapters / (length - 1));
         ulong secID = (planID - 1) % chaptersInSection + 1;
@@ -353,6 +354,7 @@ struct ReadingSection {
         if (frontDay == backDay)
           empty = true;
       }
+
       void popBack() {
         if (empty == false)
           backDay--;
