@@ -357,14 +357,14 @@ struct ReadingSection {
       }
 
       Chapter front() @property {
-        ulong planID = lrint(real(frontDay) * totalChapters / (length - 1));
+        ulong planID = lrint(cast(real) frontDay * totalChapters / (length - 1));
         ulong secID = (planID - 1) % chaptersInSection + 1;
         string chapterName = parent.decodeChapterID(secID);
         return Chapter(chapterName, planID, secID);
       }
 
       Chapter back() @property {
-        ulong planID = lrint(real(backDay) * totalChapters / (length - 1));
+        ulong planID = lrint(cast(real) backDay * totalChapters / (length - 1));
         ulong secID = (planID - 1) % chaptersInSection + 1;
         string chapterName = parent.decodeChapterID(secID);
         return Chapter(chapterName, planID, secID);
