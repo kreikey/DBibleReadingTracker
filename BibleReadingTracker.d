@@ -167,50 +167,74 @@ struct BookRange {
 struct ChaptersDays {
   long chapters;
   long days;
+
+  this(string input) {
+    string[] pieces = input.split("|");
+    chapters = pieces[0].to!(long)();
+    days = pieces[1].to!(long)();
+  }
+
+  this(long _chapters, long _days) {
+    chapters = _chapters;
+    days = _days;
+  }
+
+  string toString() {
+    return format("%d|%d", chapters, days);
+  }
+}
+
+struct ReadingPair {
+  long first;
+  long second;
+  size_t length;
+
+  this(string input) {
+    long[] readingList;
+
+    readingList = input.split("..").map!(to!long).array();
+    length = readingList.length > 2 ? 2 : readingList.length;
+    first = readingList[0];
+    second = (length == 2) ? readingList[1] : 0;
+  }
+
+  this(long _first) {
+    first = _first;
+  }
+
+  this(long _first, long _second) {
+    first = _first;
+    second = _second;
+  }
+  
+  string toString() {
+    return "" ~ (length > 0) ? first.to!string : "" ~ (length > 1) ? (".." ~ second.to!string) : "";
+  }
 }
 
 struct SectionSpec {
   string section;
   string current;
   string target;
-  string behind;
-  string lastRead;
-  string toRead;
+  ChaptersDays behind;
+  ChaptersDays lastRead;
+  //string toRead;
+  ReadingPair toRead;
   string progress;
 
-  ChaptersDays getBehind() {
-    string[] parts = behind.split("|");
-    ChaptersDays result = {chapters: parts[0].to!long(), days: parts[1].to!long()};
-    return result;
-  }
+  //long[] getToRead() {
+    //return toRead.split("..").map!(to!long).array();
+  //}
 
-  void setBehind(long chapters, long days) {
-    behind = format!"%d|%d"(chapters, days);
-  }
+  //void setToRead(long chToRead) {
+    //toRead = chToRead.to!string();
+  //}
 
-  ChaptersDays getLastRead() {
-    string[] parts = lastRead.split("|");
-    ChaptersDays result = {chapters: parts[0].to!long(), days: parts[1].to!long()};
-    return result;
-  }
-
-  void setLastRead(long chapters, long days) {
-    lastRead = format!("%d|%d")(chapters, days);
-  }
-
-  long[] getToRead() {
-    return toRead.split("..").map!(to!long).array();
-  }
-
-  void setToRead(long chToRead) {
-    toRead = chToRead.to!string();
-  }
-
-  void setToRead(long next, long last) {
-    string nextStr = next.to!string();
-    string lastStr = last.to!string();
-    toRead = nextStr ~ ".." ~ lastStr;
-  }
+  //void setToRead(long next, long last) {
+    //string nextStr = next.to!string();
+    //string lastStr = last.to!string();
+    //toRead = nextStr ~ ".." ~ lastStr;
+  //}
 
   long[4] getProgress() {
     string[] parts = progress.split(" ");
@@ -245,7 +269,7 @@ struct DateRowSpec {
   Date getStartDate() {
     string datePortion = startDateStr.split(" ")[1];
     return fromShortHRStringToDate(datePortion);
-  }
+ }
 
   void setStartDate(Date date) {
     string[] datePieces = startDateStr.split(" ");
@@ -484,7 +508,8 @@ void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date start
   void updateRecord(ref SectionSpec record, ReadingSection section, long daysRead) {
     long[4] progress = record.getProgress();
     long multiplicity = progress[3];
-    long daysBehind = record.getBehind().days;
+    //long daysBehind = record.getBehind().days;
+    long daysBehind = record.behind.days;
     auto chapterByDay = section.byDay(totalDays, multiplicity);
     assert(isRandomAccessRange!(typeof(chapterByDay)));
 
@@ -519,12 +544,11 @@ void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date start
 
     record.current = curChapter.name;
     record.target = targetChapter.name;
-    record.setBehind(chaptersBehind, daysBehind);
-    record.setLastRead(chaptersRead, daysRead);
-    if (nextDay >= tomorrow || today == totalDays)
-      record.setToRead(chaptersToReadNext);
-    else
-      record.setToRead(chaptersToReadNext, chaptersToReadTomorrow);
+    record.behind = ChaptersDays(chaptersBehind, daysBehind);
+    record.lastRead = ChaptersDays(chaptersRead, daysRead);
+    record.toRead = (nextDay >= tomorrow || today == totalDays) ?
+      ReadingPair(chaptersToReadNext) :
+      ReadingPair(chaptersToReadNext, chaptersToReadTomorrow);
     record.setProgress(curChapter.secID, section.totalChapters, readThrough, multiplicity);
   }
 
