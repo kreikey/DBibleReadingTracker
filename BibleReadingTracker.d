@@ -185,30 +185,37 @@ struct ChaptersDays {
 }
 
 struct ReadingPair {
-  long first;
-  long second;
-  size_t length;
+  //long first;
+  //long second;
+  //size_t length;
+  private long[] readingList;
 
   this(string input) {
-    long[] readingList;
-
     readingList = input.split("..").map!(to!long).array();
-    length = readingList.length > 2 ? 2 : readingList.length;
-    first = readingList[0];
-    second = (length == 2) ? readingList[1] : 0;
   }
 
   this(long _first) {
-    first = _first;
+    readingList.length = 1;
+    readingList[0] = _first;
   }
 
   this(long _first, long _second) {
-    first = _first;
-    second = _second;
+    readingList.length = 2;
+    readingList[0] = _first;
+    readingList[1] = _second;
   }
   
   string toString() {
-    return "" ~ (length > 0) ? first.to!string : "" ~ (length > 1) ? (".." ~ second.to!string) : "";
+    //return (length > 0) ?
+      //((length > 1) ? format("%d..%d", first, second) : first.to!string) :
+      //"";
+
+    //if (length > 1)
+      //return format("%d..%d", first, second);
+    //else
+      //return format("%d", first);
+
+    return readingList.map!(to!string).join("..");
   }
 }
 
@@ -546,9 +553,15 @@ void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date start
     record.target = targetChapter.name;
     record.behind = ChaptersDays(chaptersBehind, daysBehind);
     record.lastRead = ChaptersDays(chaptersRead, daysRead);
-    record.toRead = (nextDay >= tomorrow || today == totalDays) ?
-      ReadingPair(chaptersToReadNext) :
-      ReadingPair(chaptersToReadNext, chaptersToReadTomorrow);
+    //record.toRead = (nextDay >= tomorrow || today == totalDays) ?
+      //ReadingPair(chaptersToReadNext) :
+      //ReadingPair(chaptersToReadNext, chaptersToReadTomorrow);
+    if (nextDay >= tomorrow || today == totalDays) {
+      record.toRead = ReadingPair(chaptersToReadNext);
+    } else {
+      record.toRead = ReadingPair(chaptersToReadNext, chaptersToReadTomorrow);
+    }
+
     record.setProgress(curChapter.secID, section.totalChapters, readThrough, multiplicity);
   }
 
