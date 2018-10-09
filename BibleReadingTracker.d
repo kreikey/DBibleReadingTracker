@@ -401,7 +401,7 @@ struct ReadingSection {
           throw new RangeError("BibleReadingTracker.d");
         if (currentDay < 0)
           throw new RangeError("BibleReadingTracker.d");
-        ulong planID = lrint(real(currentDay) * totalChapters / (length - 1));
+        ulong planID = lrint(cast(real) currentDay * totalChapters / (length - 1));
         ulong secID = (planID - 1) % chaptersInSection + 1;
         string chapterName = parent.decodeChapterID(secID);
         return Chapter(chapterName, planID, secID);
@@ -553,14 +553,9 @@ void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date start
     record.target = targetChapter.name;
     record.behind = ChaptersDays(chaptersBehind, daysBehind);
     record.lastRead = ChaptersDays(chaptersRead, daysRead);
-    //record.toRead = (nextDay >= tomorrow || today == totalDays) ?
-      //ReadingPair(chaptersToReadNext) :
-      //ReadingPair(chaptersToReadNext, chaptersToReadTomorrow);
-    if (nextDay >= tomorrow || today == totalDays) {
-      record.toRead = ReadingPair(chaptersToReadNext);
-    } else {
-      record.toRead = ReadingPair(chaptersToReadNext, chaptersToReadTomorrow);
-    }
+    record.toRead = (nextDay >= tomorrow || today == totalDays) ?
+      ReadingPair(chaptersToReadNext) :
+      ReadingPair(chaptersToReadNext, chaptersToReadTomorrow);
 
     record.setProgress(curChapter.secID, section.totalChapters, readThrough, multiplicity);
   }
