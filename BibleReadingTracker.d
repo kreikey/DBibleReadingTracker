@@ -284,7 +284,12 @@ struct ReadingSection {
   } 
 
   string decodeChapterID(ulong chapterID) {
-    auto bookChapter = bookNames.zip(bookNames.map!(b => chaptersByBook[b]).cumulativeFold!((a, b) => a + b)()).find!(a => a[1] >= chapterID).front;
+    auto bookChapter = bookNames
+      .zip(bookNames.map!(b => chaptersByBook[b])
+        .cumulativeFold!((a, b) => a + b)())
+      .find!(a => a[1] >= chapterID)
+      .front;
+
     string book = bookChapter[0];
     ulong chapter = chapterID - (bookChapter[1] - chaptersByBook[book]);
 
