@@ -184,10 +184,7 @@ struct ChaptersDays {
   }
 }
 
-struct ReadingPair {
-  //long first;
-  //long second;
-  //size_t length;
+struct ChaptersPair {
   private long[] readingList;
 
   this(string input) {
@@ -206,16 +203,41 @@ struct ReadingPair {
   }
   
   string toString() {
-    //return (length > 0) ?
-      //((length > 1) ? format("%d..%d", first, second) : first.to!string) :
-      //"";
-
-    //if (length > 1)
-      //return format("%d..%d", first, second);
-    //else
-      //return format("%d", first);
-
     return readingList.map!(to!string).join("..");
+  }
+}
+
+struct Progress {
+  ulong chaptersRead;
+  ulong totalChapters;
+  long readThrough;
+  long multiplicity;
+
+  this(string progress) { 
+    string[] results = progress
+      .split
+      .map!(a => a.split("/"))
+      .join();
+
+    chaptersRead = results[0].to!ulong();
+    totalChapters = results[1].to!ulong();
+    readThrough = results[3].to!long();
+    multiplicity = results[4].to!long();
+  }
+
+  this(ulong _chaptersRead, ulong _totalChapters, long _readThrough, long _multiplicity) {
+    chaptersRead = _chaptersRead;
+    totalChapters = _totalChapters;
+    readThrough = _readThrough;
+    multiplicity = _multiplicity;
+  }
+
+  real percentage() @property {
+    return cast(real) chaptersRead / totalChapters * 100;
+  }
+
+  string toString() {
+    return format("%s/%s %.1f%% %s/%s", chaptersRead, totalChapters, percentage, readThrough, multiplicity);
   }
 }
 
@@ -225,36 +247,8 @@ struct SectionSpec {
   string target;
   ChaptersDays behind;
   ChaptersDays lastRead;
-  //string toRead;
-  ReadingPair toRead;
-  string progress;
-
-  //long[] getToRead() {
-    //return toRead.split("..").map!(to!long).array();
-  //}
-
-  //void setToRead(long chToRead) {
-    //toRead = chToRead.to!string();
-  //}
-
-  //void setToRead(long next, long last) {
-    //string nextStr = next.to!string();
-    //string lastStr = last.to!string();
-    //toRead = nextStr ~ ".." ~ lastStr;
-  //}
-
-  long[4] getProgress() {
-    string[] parts = progress.split(" ");
-    string[] leftParts = parts[0].split("/");
-    string[] rightParts = parts[2].split("/");
-    long[4] progressMul = [leftParts[0].to!long(), leftParts[1].to!long(), rightParts[0].to!long(), rightParts[1].to!long()];
-    return progressMul;
-  }
-
-  void setProgress(long chRead, long totalCh, long readThrough, long multiplicity) {
-    float percentage = cast(float)chRead / totalCh * 100;
-    progress = format("%d/%d %.1f%% %d/%d", chRead, totalCh, percentage, readThrough, multiplicity);
-  }
+  ChaptersPair toRead;
+  Progress progress;
 }
 
 struct DateRowSpec {
@@ -513,9 +507,7 @@ void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date start
     tomorrow = totalDays;
 
   void updateRecord(ref SectionSpec record, ReadingSection section, long daysRead) {
-    long[4] progress = record.getProgress();
-    long multiplicity = progress[3];
-    //long daysBehind = record.getBehind().days;
+    long multiplicity = record.progress.multiplicity;
     long daysBehind = record.behind.days;
     auto chapterByDay = section.byDay(totalDays, multiplicity);
     assert(isRandomAccessRange!(typeof(chapterByDay)));
@@ -554,10 +546,9 @@ void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date start
     record.behind = ChaptersDays(chaptersBehind, daysBehind);
     record.lastRead = ChaptersDays(chaptersRead, daysRead);
     record.toRead = (nextDay >= tomorrow || today == totalDays) ?
-      ReadingPair(chaptersToReadNext) :
-      ReadingPair(chaptersToReadNext, chaptersToReadTomorrow);
-
-    record.setProgress(curChapter.secID, section.totalChapters, readThrough, multiplicity);
+      ChaptersPair(chaptersToReadNext) :
+      ChaptersPair(chaptersToReadNext, chaptersToReadTomorrow);
+    record.progress = Progress(curChapter.secID, section.totalChapters, readThrough, multiplicity);
   }
 
   return &updateRecord;
@@ -599,9 +590,8 @@ Date fromShortHRStringToDate(string dateStr)
 }
 
 bool isActive(SectionSpec record) {
-  long[4] progress = record.getProgress();
-  long totalChapters = progress[3] * progress[1];
-  long chaptersRead = (progress[2] - 1) * progress[1] + progress[0];
+  long totalChapters = record.progress.multiplicity * record.progress.chaptersRead;
+  long chaptersRead = (record.progress.readThrough - 1) * record.progress.totalChapters + record.progress.chaptersRead;
 
   return (chaptersRead < totalChapters);
 }
