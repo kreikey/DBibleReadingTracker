@@ -160,8 +160,32 @@ static this() {
 }
 
 struct BookRange {
-  string first;
-  string last;
+  ulong frontID;
+  ulong lastID;
+
+  this(string first, string last) {
+    frontID = idByBook[first];
+    lastID = idByBook[last];
+  }
+
+  void popFront() {
+    if (frontID > lastID) {
+      throw new RangeError("BibleReadingTracker.d");
+    }
+
+    frontID++;
+  }
+
+  string front() @property {
+    return books[frontID];
+  }
+
+  bool empty() @property {
+    return (frontID > lastID);
+  }
+}
+unittest {
+  static assert(isInputRange!BookRange);
 }
 
 struct ChaptersDays {
@@ -302,8 +326,10 @@ struct ReadingSection {
   ulong totalChapters;
   
   this(BookRange[] bookRangeList) {
+    assert(isInputRange!BookRange);
+
     foreach (bookRange; bookRangeList)
-      bookNames ~= iota(idByBook[bookRange.first], idByBook[bookRange.last] + 1).map!(id => books[id]).array();
+      bookNames ~= bookRange.array();
 
     totalChapters = bookNames.map!(b => chaptersByBook[b]).sum();
   } 
@@ -353,7 +379,7 @@ struct ReadingSection {
         totalChapters = chaptersInSection * _multiplicity;
         frontDay = 1;
         backDay = _totalDays;
-        empty = backDay != frontDay;
+        empty = backDay == frontDay;
         length = _totalDays + 1;
       }
 
@@ -372,14 +398,14 @@ struct ReadingSection {
       }
 
       void popFront() {
-        if (empty == false)
+        if (!empty)
           frontDay++;
         if (frontDay == backDay)
           empty = true;
       }
 
       void popBack() {
-        if (empty == false)
+        if (!empty)
           backDay--;
         if (backDay == frontDay)
           empty = true;

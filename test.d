@@ -149,8 +149,8 @@ ulong[] chapters = [
 ];
 
 struct BookRange {
-  string start;
-  string end;
+  string first;
+  string last;
 }
 
 struct ReadingSection {
@@ -159,7 +159,7 @@ struct ReadingSection {
   
   this(BookRange[] bookRangeList) {
     foreach (bookRange; bookRangeList)
-      bookIDs ~= iota(idByBook[bookRange.start], idByBook[bookRange.end] + 1).array();
+      bookIDs ~= iota(idByBook[bookRange.first], idByBook[bookRange.last] + 1).array();
     
     totalChapters = bookIDs.map!(chaptersOf).sum();
   } 
@@ -264,47 +264,6 @@ struct Chapter {
   ulong secID;
 }
 
-immutable ulong[string] idByBook;
-
-static this() {
-  idByBook = zip(books, iota(0, books.length)).assocArray();
-}
-
-void main(string[] args) {
-  ulong[] bookIDs = [14, 15, 16, 17, 20, 21, 22, 23, 24, 25, 26, 27, 28, 30, 31, 32, 33, 34, 35, 36, 37, 38];
-  foreach(bookID; bookIDs)
-    writeln(books[bookID]);
-  writeln("-----");
-  //ulong chapterSum = 0;
-  //ulong chID = 292;
-  //auto theBook = bookIDs.zip(bookIDs.map!(chaptersOf).cumulativeFold!(sum2)()).find!(a => a[1] >= chID).front;
-  //writeln(theBook);
-  //writefln("%s: %d", books[theBook[0]], chID - (theBook[1] - chapters[theBook[0]]));
-
-  //writeln("-----");
-
-  //File readingSectionsFile = File("readingSections2.sdl");
-  //ReadingSection[string] sectionsByName = getSectionsFromFile1("readingSections2.sdl");
-  ReadingSection[string] sectionsByName = getSectionsFromFile("readingSections.sdl");
-  //writeln(sectionsByName);
-  //readingSections.rawWrite(sectionsByName);
-  //ReadingSection[string] sectionsByName = [
-    //"Old Testament" : ReadingSection([BookRange("Genesis", "Job"),
-        //BookRange("Ecclesiastes", "Malachi")]),
-    //"New Testament" : ReadingSection([BookRange("Matthew", "Revelation")]),
-    //"Psalms" : ReadingSection([BookRange("Psalms", "Psalms")]),
-    //"Proverbs" : ReadingSection([BookRange("Proverbs", "Proverbs")])
-  //];
-
-  //auto output = File("sectionsOut.txt", "w");
-  //root.all.tags["ReadingSection"].each!(t => output.writeln(t.getFullName()));
-
-  //writeln(sectionsByName.to!string());
-  //sectionsByName.to!string().toFile("readingSections.txt");
-
-
-}
-
 ReadingSection[string] getSectionsFromFile1(string filename) {
   ReadingSection[string] sectionsByNameOld = [
     "Old Testament" : ReadingSection([BookRange("Genesis", "Job"),
@@ -324,12 +283,12 @@ ReadingSection[string] getSectionsFromFile1(string filename) {
     BookRange[] bookRanges = [];
 
     foreach (range; section.tags["range"]) {
-      //writefln("  %s: %s, %s", range.name, range.tags["start"][0].expectValue!string, range.tags["end"][0].expectValue!string);
-      //string start = range.tags["start"].front.expectValue!string;
-      //string end = range.tags["end"].front.expectValue!string;
-      string start = range.expectTagValue!string("start");
-      string end = range.expectTagValue!string("end");
-      bookRanges ~= BookRange(start, end);
+      //writefln("  %s: %s, %s", range.name, range.tags["first"][0].expectValue!string, range.tags["last"][0].expectValue!string);
+      //string first = range.tags["first"].front.expectValue!string;
+      //string last = range.tags["last"].front.expectValue!string;
+      string first = range.expectTagValue!string("first");
+      string last = range.expectTagValue!string("last");
+      bookRanges ~= BookRange(first, last);
     }
     auto readingSection = ReadingSection(bookRanges);
 
@@ -362,10 +321,10 @@ ReadingSection[string] getSectionsFromFile(string filename) {
     BookRange[] bookRanges = [];
 
     foreach (bookrange; section.tags["bookrange"]) {
-      writefln("  %s: %s, %s", bookrange.name, bookrange.expectAttribute!string("start"), bookrange.expectAttribute!string("end"));
-      string start = bookrange.expectAttribute!string("start");
-      string end = bookrange.expectAttribute!string("end");
-      bookRanges ~= BookRange(start, end);
+      writefln("  %s: %s, %s", bookrange.name, bookrange.expectAttribute!string("first"), bookrange.expectAttribute!string("last"));
+      string first = bookrange.expectAttribute!string("first");
+      string last = bookrange.expectAttribute!string("last");
+      bookRanges ~= BookRange(first, last);
     }
     auto readingSection = ReadingSection(bookRanges);
 
@@ -391,3 +350,64 @@ ulong sum2(ulong a, ulong b) {
   return a + b;
 }
 
+
+immutable ulong[string] idByBook;
+
+static this() {
+  idByBook = zip(books, iota(0, books.length)).assocArray();
+}
+
+void main(string[] args) {
+  ulong[] bookIDs = [14, 15, 16, 17, 20, 21, 22, 23, 24, 25, 26, 27, 28, 30, 31, 32, 33, 34, 35, 36, 37, 38];
+  foreach(bookID; bookIDs)
+    writeln(books[bookID]);
+  writeln("-----");
+
+  ulong length = bookIDs.length;
+  writeln(length);
+  for (ulong i = 0; i < length; i++) {
+    writefln("%s, %s", bookIDs.front, books[bookIDs.front]);
+    bookIDs.popFront();
+    writeln(bookIDs);
+    writeln(bookIDs.empty);
+  }
+
+  //int[] numbers;
+  //numbers ~= 99;
+  //writeln(numbers);
+  //writeln(numbers.front);
+  //writeln(numbers.empty);
+  //numbers.popFront();
+  //writeln(numbers);
+  //writeln(numbers.front);
+  //writeln(numbers.empty);
+  
+  //ulong chapterSum = 0;
+  //ulong chID = 292;
+  //auto theBook = bookIDs.zip(bookIDs.map!(chaptersOf).cumulativeFold!(sum2)()).find!(a => a[1] >= chID).front;
+  //writeln(theBook);
+  //writefln("%s: %d", books[theBook[0]], chID - (theBook[1] - chapters[theBook[0]]));
+
+  //writeln("-----");
+
+  //File readingSectionsFile = File("readingSections2.sdl");
+  //ReadingSection[string] sectionsByName = getSectionsFromFile1("readingSections2.sdl");
+  ReadingSection[string] sectionsByName = getSectionsFromFile("readingSections.sdl");
+  //writeln(sectionsByName);
+  //readingSections.rawWrite(sectionsByName);
+  //ReadingSection[string] sectionsByName = [
+    //"Old Testament" : ReadingSection([BookRange("Genesis", "Job"),
+        //BookRange("Ecclesiastes", "Malachi")]),
+    //"New Testament" : ReadingSection([BookRange("Matthew", "Revelation")]),
+    //"Psalms" : ReadingSection([BookRange("Psalms", "Psalms")]),
+    //"Proverbs" : ReadingSection([BookRange("Proverbs", "Proverbs")])
+  //];
+
+  //auto output = File("sectionsOut.txt", "w");
+  //root.all.tags["ReadingSection"].each!(t => output.writeln(t.getFullName()));
+
+  //writeln(sectionsByName.to!string());
+  //sectionsByName.to!string().toFile("readingSections.txt");
+
+
+}
