@@ -169,7 +169,7 @@ struct BookRange {
   }
 
   void popFront() {
-    if (frontID > lastID) {
+    if (empty) {
       throw new RangeError("BibleReadingTracker.d");
     }
 
@@ -372,7 +372,7 @@ struct ReadingSection {
       ulong totalChapters;
       ulong frontDay;
       ulong backDay;
-      bool empty = true;
+      //bool empty = true;
       ulong length;
 
       this(ulong _totalDays, ulong _multiplicity) { 
@@ -380,7 +380,7 @@ struct ReadingSection {
         totalChapters = chaptersInSection * _multiplicity;
         frontDay = 1;
         backDay = _totalDays;
-        empty = backDay == frontDay;
+        //empty = backDay == frontDay;
         length = _totalDays + 1;
       }
 
@@ -399,17 +399,21 @@ struct ReadingSection {
       }
 
       void popFront() {
-        if (!empty)
-          frontDay++;
-        if (frontDay == backDay)
-          empty = true;
+        if (empty)
+          throw new RangeError("BibleReadingTracker.d");
+
+        frontDay++;
       }
 
       void popBack() {
-        if (!empty)
-          backDay--;
-        if (backDay == frontDay)
-          empty = true;
+        if (empty)
+          throw new RangeError("BibleReadingTracker.d");
+
+        backDay--;
+      }
+
+      bool empty() @property {
+        return (frontDay > backDay);
       }
 
       auto save() @property {
@@ -432,6 +436,7 @@ struct ReadingSection {
         return length;
       }
     }
+
     return Result(totalDays, multiplicity);
   }
 

@@ -372,15 +372,23 @@ void main(string[] args) {
     writeln(bookIDs.empty);
   }
 
-  //int[] numbers;
-  //numbers ~= 99;
-  //writeln(numbers);
-  //writeln(numbers.front);
-  //writeln(numbers.empty);
-  //numbers.popFront();
-  //writeln(numbers);
-  //writeln(numbers.front);
-  //writeln(numbers.empty);
+  int[] numbers = [1, 2, 3, 4, 5];
+  writeln(numbers);
+  writeln(numbers.empty);
+  writefln("front: %d back: %d", numbers.front, numbers.back);
+  numbers.popFront();
+  numbers.popBack();
+  writeln(numbers);
+  writeln(numbers.empty);
+  writefln("front: %d back: %d", numbers.front, numbers.back);
+  numbers.popFront();
+  numbers.popBack();
+  writeln(numbers);
+  writeln(numbers.empty);
+  writefln("front: %d back: %d", numbers.front, numbers.back);
+  numbers.popFront();
+  writeln(numbers);
+  writeln(numbers.empty);
   
   //ulong chapterSum = 0;
   //ulong chID = 292;
