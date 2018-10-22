@@ -620,7 +620,7 @@ Date fromShortHRStringToDate(string dateStr)
 }
 
 bool isActive(SectionSpec record) {
-  long totalChapters = record.progress.multiplicity * record.progress.chaptersRead;
+  long totalChapters = record.progress.multiplicity * record.progress.totalChapters;
   long chaptersRead = (record.progress.readThrough - 1) * record.progress.totalChapters + record.progress.chaptersRead;
 
   return (chaptersRead < totalChapters);
