@@ -326,23 +326,22 @@ struct ReadingSection {
   ulong totalChapters;
   
   this(BookRange[] bookRangeList) {
-    assert(isInputRange!BookRange);
-
-    foreach (bookRange; bookRangeList)
+    foreach (bookRange; bookRangeList)    //assert(isInputRange!BookRange);
       bookNames ~= bookRange.array();
 
     totalChapters = bookNames.map!(b => chaptersByBook[b]).sum();
   } 
 
   string decodeChapterID(ulong chapterID) {
-    auto bookChapter = bookNames
-      .zip(bookNames.map!(b => chaptersByBook[b])
-        .cumulativeFold!((a, b) => a + b)())
-      .find!(a => a[1] >= chapterID)
+    auto chaptersBook = bookNames
+      .map!(a => chaptersByBook[a])
+      .cumulativeFold!((a, b) => a + b)
+      .zip(bookNames)
+      .find!(a => a[0] >= chapterID)
       .front;
 
-    string book = bookChapter[0];
-    ulong chapter = chapterID - (bookChapter[1] - chaptersByBook[book]);
+    string book = chaptersBook[1];
+    ulong chapter = chapterID - (chaptersBook[0] - chaptersByBook[book]);
 
     return format("%s %d", book, chapter);
   }
