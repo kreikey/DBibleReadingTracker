@@ -161,11 +161,11 @@ static this() {
 
 struct BookRange {
   ulong frontID;
-  ulong lastID;
+  ulong backID;
 
   this(string first, string last) {
     frontID = idByBook[first];
-    lastID = idByBook[last];
+    backID = idByBook[last];
   }
 
   void popFront() {
@@ -181,7 +181,7 @@ struct BookRange {
   }
 
   bool empty() @property {
-    return (frontID > lastID);
+    return (frontID > backID);
   }
 }
 unittest {
@@ -326,10 +326,12 @@ struct ReadingSection {
   ulong totalChapters;
   
   this(BookRange[] bookRangeList) {
-    foreach (bookRange; bookRangeList)    //assert(isInputRange!BookRange);
+    foreach (bookRange; bookRangeList)
       bookNames ~= bookRange.array();
 
-    totalChapters = bookNames.map!(b => chaptersByBook[b]).sum();
+    totalChapters = bookNames
+      .map!(b => chaptersByBook[b])
+      .sum();
   } 
 
   string decodeChapterID(ulong chapterID) {
