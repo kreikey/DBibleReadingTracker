@@ -326,8 +326,9 @@ struct ReadingSection {
   ulong totalChapters;
   
   this(BookRange[] bookRangeList) {
-    foreach (bookRange; bookRangeList)
-      bookNames ~= bookRange.array();
+    bookNames = bookRangeList
+      .map!(array)
+      .join();
 
     totalChapters = bookNames
       .map!(b => chaptersByBook[b])
