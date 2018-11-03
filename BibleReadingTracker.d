@@ -169,25 +169,60 @@ struct BookRange {
     backID = idByBook[last];
   }
 
-  void popFront() {
-    if (empty) {
-      throw new RangeError("BibleReadingTracker.d");
+  auto byID() {
+    BookRange* parent = &this;
+
+    struct Result {
+      void popFront() {
+        if (empty) {
+          throw new RangeError("BibleReadingTracker.d");
+        }
+
+        parent.frontID++;
+      }
+
+      ulong front() @property {
+        return parent.frontID;
+      }
+
+      bool empty() @property {
+        return (parent.frontID > parent.backID);
+      }
     }
 
-    frontID++;
+    return Result();
   }
 
-  string front() @property {
-    return books[frontID];
-  }
+  auto byBook() {
+    BookRange* parent = &this;
+    
+    struct Result {
+      void popFront() {
+        if (empty) {
+          throw new RangeError("BibleReadingTracker.d");
+        }
 
-  bool empty() @property {
-    return (frontID > backID);
+        parent.frontID++;
+      }
+
+      string front() @property {
+        return books[parent.frontID];
+      }
+
+      bool empty() @property {
+        return (parent.frontID > parent.backID);
+      }
+    }
+
+    return Result();
   }
 }
 unittest {
-  static assert(isInputRange!BookRange);
+  auto r = BookRange("Genesis", "Revelation");
+  assert(isInputRange!(typeof(r.byID())));
+  assert(isInputRange!(typeof(r.byBook())));
 }
+
 
 struct ChaptersDays {
   long chapters;
@@ -341,7 +376,9 @@ struct ReadingSection {
   
   this(BookRange[] bookRangeList) {
     bookNames = bookRangeList
-      .map!(array)
+      .map!(r => r
+        .byBook
+        .array())
       .join();
 
     totalChapters = bookNames
