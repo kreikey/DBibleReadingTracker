@@ -11,6 +11,7 @@ import core.exception;
 import sdlang;
 import std.math;
 import std.typecons;
+import std.format;
 
 string[] books = [
   "Genesis",
@@ -208,26 +209,39 @@ struct ChaptersDays {
   }
 }
 
-struct ChaptersPair {
-  private long[] readingList;
+struct ToRead {
+  private ulong next;
+  private Nullable!ulong tomorrow;
+  private Nullable!ulong total;
 
   this(string input) {
-    readingList = input.split("..").map!(to!long).array();
+    ulong _tomorrow;
+    ulong _total;
+
+    if (input.canFind('=')) {
+      input.formattedRead("%d..%d=%d", next, _tomorrow, _total);
+      tomorrow = _tomorrow;
+      total = _total;
+    } else {
+      next = input.to!ulong();
+    }
   }
 
-  this(long _first) {
-    readingList.length = 1;
-    readingList[0] = _first;
+  this(ulong _next) {
+    next = _next;
   }
 
-  this(long _first, long _second) {
-    readingList.length = 2;
-    readingList[0] = _first;
-    readingList[1] = _second;
+  this(ulong _next, ulong _tomorrow, ulong _total) {
+    next = _next;
+    tomorrow = _tomorrow;
+    total = _total;
   }
   
   string toString() {
-    return readingList.map!(to!string).join("..");
+    if (tomorrow.isNull || total.isNull)
+      return next.to!string();
+    else
+      return format("%d..%d=%d", next, tomorrow.get, total.get);
   }
 }
 
@@ -271,7 +285,7 @@ struct SectionSpec {
   string target;
   ChaptersDays behind;
   ChaptersDays lastRead;
-  ChaptersPair toRead;
+  ToRead toRead;
   Progress progress;
 }
 
@@ -577,8 +591,8 @@ void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date start
     record.behind = ChaptersDays(chaptersBehind, daysBehind);
     record.lastRead = ChaptersDays(chaptersRead, daysRead);
     record.toRead = (nextDay >= tomorrow || today == totalDays) ?
-      ChaptersPair(chaptersToReadNext) :
-      ChaptersPair(chaptersToReadNext, chaptersToReadTomorrow);
+      ToRead(chaptersToReadNext) :
+      ToRead(chaptersToReadNext, chaptersToReadTomorrow, (chaptersBehind + chaptersToReadTomorrow));
     record.progress = Progress(curChapter.secID, section.totalChapters, readThrough, multiplicity);
   }
 
