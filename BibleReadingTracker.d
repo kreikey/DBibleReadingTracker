@@ -240,7 +240,7 @@ struct ChaptersDays {
   }
 
   string toString() {
-    return format("%d|%d", chapters, days);
+    return format!"%d|%d"(chapters, days);
   }
 }
 
@@ -254,7 +254,7 @@ struct ToRead {
     ulong _total;
 
     if (input.canFind('=')) {
-      input.formattedRead("%d..%d=%d", next, _tomorrow, _total);
+      input.formattedRead!"%d..%d=%d"(next, _tomorrow, _total);
       tomorrow = _tomorrow;
       total = _total;
     } else {
@@ -276,7 +276,7 @@ struct ToRead {
     if (tomorrow.isNull || total.isNull)
       return next.to!string();
     else
-      return format("%d..%d=%d", next, tomorrow.get, total.get);
+      return format!"%d..%d=%d"(next, tomorrow.get, total.get);
   }
 }
 
@@ -310,7 +310,7 @@ struct Progress {
   }
 
   string toString() {
-    return format("%s/%s %.1f%% %s/%s", chaptersRead, totalChapters, percentage, readThrough, multiplicity);
+    return format!"%s/%s %.1f%% %s/%s"(chaptersRead, totalChapters, percentage, readThrough, multiplicity);
   }
 }
 
@@ -397,7 +397,7 @@ struct ReadingSection {
     string book = chaptersBook[1];
     ulong chapter = chapterID - (chaptersBook[0] - chaptersByBook[book]);
 
-    return format("%s %d", book, chapter);
+    return format!"%s %d"(book, chapter);
   }
 
   long encodeChapterID(string bookAndChapter) {
@@ -560,16 +560,16 @@ void main(string[] args) {
   // write updated table along with related information
   writeln(title);
   writeln(headSeparator);
-  with(dateRow) writefln("%s\t%s\t%s", lastModDateStr, startDateStr, endDateStr);
+  with(dateRow) writefln!"%s\t%s\t%s"(lastModDateStr, startDateStr, endDateStr);
   writeln(mainSeparator);
   writeln(sectionHeader.join("\t"));
   foreach(record; sectionRecords) {
     with(record) {
-      writefln("%s\t%s\t%s\t%s\t%s\t%s\t%s", section, current, target, behind, lastRead, toRead, progress);
+      writefln!"%s\t%s\t%s\t%s\t%s\t%s\t%s"(section, current, target, behind, lastRead, toRead, progress);
     }
   }
   writeln(mainSeparator);
-  writefln("Status: %scompleted last reading in %s days", tableResetMsg, daysElapsed);
+  writefln!"Status: %scompleted last reading in %s days"(tableResetMsg, daysElapsed);
 }
 
 void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date startDate, Date endDate, Date lastModDate, Date todaysDate) {
@@ -661,7 +661,7 @@ ReadingSection[string] getSectionsFromFile(string filename) {
 string toShortHRString(Date someDate)
 {
   with (someDate) {
-    return format("%d/%d/%d", month, day, year - 2000);
+    return format!"%d/%d/%d"(month, day, year - 2000);
   }
 }
 
