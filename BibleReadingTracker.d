@@ -161,16 +161,12 @@ static this() {
 }
 
 struct BookRange {
-  ulong frontID;
-  ulong backID;
-
-  this(string first, string last) {
-    frontID = idByBook[first];
-    backID = idByBook[last];
-  }
+  string firstBook;
+  string lastBook;
 
   auto byID() {
-    BookRange* parent = &this;
+    ulong frontID = idByBook[firstBook];
+    ulong backID = idByBook[lastBook];
 
     struct Result {
       void popFront() {
@@ -178,15 +174,15 @@ struct BookRange {
           throw new RangeError("BibleReadingTracker.d");
         }
 
-        parent.frontID++;
+        frontID++;
       }
 
       ulong front() @property {
-        return parent.frontID;
+        return frontID;
       }
 
       bool empty() @property {
-        return (parent.frontID > parent.backID);
+        return (frontID > backID);
       }
     }
 
@@ -194,23 +190,24 @@ struct BookRange {
   }
 
   auto byBook() {
-    BookRange* parent = &this;
-    
+    ulong frontID = idByBook[firstBook];
+    ulong backID = idByBook[lastBook];
+   
     struct Result {
       void popFront() {
         if (empty) {
           throw new RangeError("BibleReadingTracker.d");
         }
 
-        parent.frontID++;
+        frontID++;
       }
 
       string front() @property {
-        return books[parent.frontID];
+        return books[frontID];
       }
 
       bool empty() @property {
-        return (parent.frontID > parent.backID);
+        return (frontID > backID);
       }
     }
 
