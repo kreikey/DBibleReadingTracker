@@ -574,19 +574,19 @@ void main(string[] args) {
 
 void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date startDate, Date endDate, Date lastModDate, Date todaysDate) {
   bool reset = lastModDate < startDate;
+
   if (reset)
     lastModDate = startDate;
+
   // Initialize the day offsets we'll use to do our calculations
   long totalDays = (endDate - startDate).total!"days" + 1;
+  auto limitDays = limitDaysInit(totalDays);
+
   long lastDay = (lastModDate - startDate).total!"days" + 1;
-  if (lastDay > totalDays)
-    lastDay = totalDays;
   long today = (todaysDate - startDate).total!"days" + 1;
-  if (today > totalDays)
-    today = totalDays;
   long tomorrow = today + 1;
-  if (tomorrow > totalDays)
-    tomorrow = totalDays;
+
+  limitDays(&lastDay, &today, &tomorrow);
 
   void updateRecord(ref SectionSpec record, ReadingSection section, long daysRead) {
     long multiplicity = record.progress.multiplicity;
@@ -595,6 +595,7 @@ void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date start
     assert(isRandomAccessRange!(typeof(chapterByDay)));
 
     long lastCurDay = lastDay - daysBehind;
+
     if (reset) {
       lastCurDay = 0;
       if (daysRead == 0)
@@ -602,13 +603,12 @@ void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date start
     } else if (lastCurDay + daysRead > totalDays) {
       daysRead = totalDays - lastCurDay;
     }
+
     long currentDay = lastCurDay + daysRead;
-    if (currentDay > totalDays)
-      currentDay = totalDays;
+    limitDays(&currentDay);
 
     long nextDay = currentDay + 1; // handle chaptersToRead issue here by limiting nextDay depending on totalDays
-    if (nextDay > totalDays)
-      nextDay = totalDays;
+    limitDays(&nextDay);
 
     Chapter lastCurChapter = chapterByDay[lastCurDay];
     Chapter curChapter = chapterByDay[currentDay];
@@ -678,3 +678,12 @@ bool isActive(SectionSpec record) {
   return (chaptersRead < totalChapters);
 }
 
+auto limitDaysInit(long totalDays) {
+  void limitDays(long*[] days ...) {
+    foreach (d; days) {
+      if (*d > totalDays)
+        *d = totalDays;
+    }
+  }
+  return &limitDays;
+}
