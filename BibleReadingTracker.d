@@ -251,7 +251,7 @@ struct ToRead {
     ulong _total;
 
     if (input.canFind('=')) {
-      input.formattedRead!"%d..%d=%d"(next, _tomorrow, _total);
+      input.formattedRead!"%d..%d %d"(next, _tomorrow, _total);
       tomorrow = _tomorrow;
       total = _total;
     } else {
@@ -273,7 +273,7 @@ struct ToRead {
     if (tomorrow.isNull || total.isNull)
       return next.to!string();
     else
-      return format!"%d..%d=%d"(next, tomorrow.get, total.get);
+      return format!"%d..%d %d"(next, tomorrow.get, total.get);
   }
 }
 
