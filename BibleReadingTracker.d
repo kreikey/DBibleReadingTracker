@@ -12,6 +12,7 @@ import sdlang;
 import std.math;
 import std.typecons;
 import std.format;
+import std.exception : assumeUnique;
 
 string[] books = [
   "Genesis",
@@ -151,12 +152,16 @@ ulong[] chapters = [
   22
 ];
 
-ulong[string] idByBook;
-ulong[string] chaptersByBook;
+immutable ulong[string] idByBook;
+immutable ulong[string] chaptersByBook;
 
 static this() {
-  idByBook = books.enumerate.map!(reverse).assocArray();
-  chaptersByBook = books.zip(chapters).assocArray();
+  ulong[string] temp = books.enumerate.map!(reverse).assocArray();
+  temp.rehash();
+  idByBook = assumeUnique(temp);
+  temp = books.zip(chapters).assocArray();
+  temp.rehash();
+  chaptersByBook = assumeUnique(temp);
   resetIeeeFlags();
 }
 
