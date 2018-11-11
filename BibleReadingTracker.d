@@ -227,9 +227,7 @@ struct ChaptersDays {
   long days;
 
   this(string input) {
-    string[] pieces = input.split("|");
-    chapters = pieces[0].to!(long)();
-    days = pieces[1].to!(long)();
+    input.formattedRead!"%d|%d"(chapters, days);
   }
 
   this(long _chapters, long _days) {
@@ -285,15 +283,8 @@ struct Progress {
   long multiplicity;
 
   this(string progress) { 
-    string[] results = progress
-      .split
-      .map!(a => a.split("/"))
-      .join();
-
-    chaptersRead = results[0].to!ulong();
-    totalChapters = results[1].to!ulong();
-    readThrough = results[3].to!long();
-    multiplicity = results[4].to!long();
+    real percentRead; // A throwaway variable to make formattedRead parse correctly. We don't need it because it's a computed property.
+    progress.formattedRead!"%d/%d %f%% %d/%d"(chaptersRead, totalChapters, percentRead, readThrough, multiplicity);
   }
 
   this(ulong _chaptersRead, ulong _totalChapters, long _readThrough, long _multiplicity) {
