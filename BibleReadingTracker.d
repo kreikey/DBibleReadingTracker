@@ -313,43 +313,51 @@ struct SectionSpec {
   Progress progress;
 }
 
+struct LabelledDate {
+  string label;
+  Date date;
+  alias date this;
+
+  this(string labelledDateStr) {
+    int month;
+    int day;
+    int shortYear;
+
+    labelledDateStr.formattedRead!"%s: %d/%d/%d"(label, month, day, shortYear);
+    assert(shortYear < 100 && shortYear >= 0);
+    date = Date(shortYear + 2000, month, day);
+  }
+
+  this(Date sourceDate, string _label) {
+    date = sourceDate;
+    label = _label;
+  }
+
+  this(SysTime source, string _label) {
+    date = cast(Date)source;
+    label = _label;
+  }
+ 
+  string toString() {
+    return format!"%s: %d/%d/%d"(label, month, day, year - 2000);
+  }
+}
+unittest {
+  auto myDate = LabelledDate("Date: 10/24/15");
+  with (myDate) writefln("%s, %s, %s", month, day, year);
+  with (myDate) writefln("%s: %s", label, date);
+  LabelledDate rightNowDate = Clock.currTime.LabelledDate("Now");
+  writeln(rightNowDate);
+  LabelledDate nowWithLabel = LabelledDate(Clock.currTime(), "Label");
+  writeln(nowWithLabel);
+  LabelledDate nowDateLabel = LabelledDate(cast(Date)Clock.currTime(), "Label2");
+  writeln(nowDateLabel);
+}
+
 struct DateRowSpec {
-  string lastModDateStr;
-  string startDateStr;
-  string endDateStr;
-  
-  Date getLastModDate() {
-    string datePortion = lastModDateStr.split(" ")[1];
-    return fromShortHRStringToDate(datePortion);
-  }
-
-  void setLastModDate(Date date) {
-    string[] datePieces = lastModDateStr.split(" ");
-    datePieces[1] = date.toShortHRString();
-    lastModDateStr = datePieces.join(" ");
-  }
-
-  Date getStartDate() {
-    string datePortion = startDateStr.split(" ")[1];
-    return fromShortHRStringToDate(datePortion);
- }
-
-  void setStartDate(Date date) {
-    string[] datePieces = startDateStr.split(" ");
-    datePieces[1] = date.toShortHRString();
-    startDateStr = datePieces.join(" ");
-  }
-
-  Date getEndDate() {
-    string datePortion = endDateStr.split(" ")[1];
-    return fromShortHRStringToDate(datePortion);
-  }
-
-  void setEndDate(Date date) {
-    string[] datePieces = endDateStr.split(" ");
-    datePieces[1] = date.toShortHRString();
-    endDateStr = datePieces.join(" ");
-  }
+  LabelledDate lastModDate;
+  LabelledDate startDate;
+  LabelledDate endDate;
 }
 
 struct Chapter {
@@ -519,24 +527,21 @@ void main(string[] args) {
     }
   }
 
-  // Get dates
-  Date startDate = dateRow.getStartDate();
-  Date endDate = dateRow.getEndDate();
-  Date lastModDate = dateRow.getLastModDate();
-  Date todaysDate = cast(Date)(Clock.currTime());
+  // Get today's date
+  LabelledDate todaysDate = Clock.currTime.LabelledDate(dateRow.lastModDate.label);
 
   // Initialize our updateRecord closure with the day offsets we calculated so we don't have to pass a bunch of reduntant arguments to it when we update records
-  auto updateRecord = updateRecordInit(startDate, endDate, lastModDate, todaysDate);
+  auto updateRecord = updateRecordInit(dateRow.startDate, dateRow.endDate, dateRow.lastModDate, todaysDate);
 
   string tableResetMsg = "";
   long daysElapsed = 0;
 
-  if (lastModDate < startDate) {
+  if (dateRow.lastModDate < dateRow.startDate) {
     daysElapsed++;
     tableResetMsg ~= "Table reset; ";
-    lastModDate = startDate;
+    dateRow.lastModDate.date = dateRow.startDate.date;
   }
-  daysElapsed += (todaysDate - lastModDate).total!"days";
+  daysElapsed += (todaysDate - dateRow.lastModDate).total!"days";
 
   ReadingSection[string] sectionsByName = getSectionsFromFile("readingSections.sdl");
 
@@ -546,12 +551,12 @@ void main(string[] args) {
   }
 
   // Update last-modified date
-  dateRow.setLastModDate(todaysDate);
+  dateRow.lastModDate.date = todaysDate.date;
 
   // write updated table along with related information
   writeln(title);
   writeln(headSeparator);
-  with(dateRow) writefln!"%s\t%s\t%s"(lastModDateStr, startDateStr, endDateStr);
+  with(dateRow) writefln!"%s\t%s\t%s"(lastModDate, startDate, endDate);
   writeln(mainSeparator);
   writeln(sectionHeader.join("\t"));
   foreach(record; sectionRecords) {
@@ -563,11 +568,12 @@ void main(string[] args) {
   writefln!"Status: %scompleted last reading in %s days"(tableResetMsg, daysElapsed);
 }
 
-void delegate(ref SectionSpec, ReadingSection, long) updateRecordInit(Date startDate, Date endDate, Date lastModDate, Date todaysDate) {
+// The return type of this function is void delegate(ref SectionSpec, ReadingSection, long), but auto is more readable.
+auto updateRecordInit(LabelledDate startDate, LabelledDate endDate, LabelledDate lastModDate, LabelledDate todaysDate) {
   bool reset = lastModDate < startDate;
 
   if (reset)
-    lastModDate = startDate;
+    lastModDate.date = startDate.date;
 
   // Initialize the day offsets we'll use to do our calculations
   long totalDays = (endDate - startDate).total!"days" + 1;
@@ -647,19 +653,6 @@ ReadingSection[string] getSectionsFromFile(string filename) {
   }
 
   return sectionsByName;
-}
-
-string toShortHRString(Date someDate)
-{
-  with (someDate) {
-    return format!"%d/%d/%d"(month, day, year - 2000);
-  }
-}
-
-Date fromShortHRStringToDate(string dateStr)
-{
-  int[] mdy = dateStr.split("/").to!(int[]);
-  return Date(mdy[2] + 2000, mdy[0], mdy[1]);
 }
 
 bool isActive(SectionSpec record) {
