@@ -251,7 +251,7 @@ struct ToRead {
     ulong _tomorrow;
     ulong _total;
 
-    if (input.canFind('=')) {
+    if (input.canFind(' ')) {
       input.formattedRead!"%d..%d %d"(next, _tomorrow, _total);
       tomorrow = _tomorrow;
       total = _total;
