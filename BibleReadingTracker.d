@@ -247,21 +247,21 @@ struct Chapter {
 }
 
 struct ReadingSection {
-  alias BookChapter = Tuple!(int, "bookID", int, "chapterID");
-  BookChapter[] bookChapterIDs;
+  alias BookChapter = Tuple!(Book, "book", int, "chapterID");
+  BookChapter[] bookChapters;
   int totalChapters;
   
   this(BookRange[] bookRangeList) {
-    bookChapterIDs = bookRangeList
+    bookChapters = bookRangeList
       .map!(r => r
-        .byID
-        .map!(b => iota!int(1, books[b].chapters + 1)
+        .byBook
+        .map!(b => iota!int(1, b.chapters + 1)
           .map!(c => BookChapter(b, c))
           .array())
         .join())
       .join();
 
-    totalChapters = bookChapterIDs.length.to!int();
+    totalChapters = bookChapters.length.to!int();
   } 
 
   auto byChapter() {
