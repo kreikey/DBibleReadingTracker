@@ -303,8 +303,8 @@ struct Progress {
     multiplicity = _multiplicity;
   }
 
-  real percentage() @property {
-    return cast(real) chaptersRead / totalChapters * 100;
+  double percentage() @property {
+    return double(chaptersRead) / totalChapters * 100;
   }
 
   string toString() {
@@ -435,14 +435,14 @@ struct ReadingSection {
       }
 
       Chapter front() @property {
-        ulong planID = lrint(cast(real) frontDay * totalChapters / (length - 1));
+        ulong planID = lrint(double(frontDay) * totalChapters / (length - 1));
         ulong secID = (planID - 1) % chaptersInSection + 1;
         string chapterName = parent.decodeChapterID(secID);
         return Chapter(chapterName, planID, secID);
       }
 
       Chapter back() @property {
-        ulong planID = lrint(cast(real) backDay * totalChapters / (length - 1));
+        ulong planID = lrint(double(backDay) * totalChapters / (length - 1));
         ulong secID = (planID - 1) % chaptersInSection + 1;
         string chapterName = parent.decodeChapterID(secID);
         return Chapter(chapterName, planID, secID);
@@ -476,7 +476,7 @@ struct ReadingSection {
           throw new RangeError("BibleReadingTracker.d");
         if (currentDay < 0)
           throw new RangeError("BibleReadingTracker.d");
-        ulong planID = lrint(cast(real) currentDay * totalChapters / (length - 1));
+        ulong planID = lrint(double(currentDay) * totalChapters / (length - 1));
         ulong secID = (planID - 1) % chaptersInSection + 1;
         string chapterName = parent.decodeChapterID(secID);
         return Chapter(chapterName, planID, secID);
