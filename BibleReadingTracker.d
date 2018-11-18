@@ -135,7 +135,7 @@ struct Progress {
   long multiplicity;
 
   this(string progress) { 
-    real percentRead; // A throwaway variable to make formattedRead parse correctly. We don't need it because it's a computed property.
+    double percentRead; // A throwaway variable to make formattedRead parse correctly. We don't need it because it's a computed property.
     progress.formattedRead!"%d/%d %f%% %d/%d"(chaptersRead, totalChapters, percentRead, readThrough, multiplicity);
   }
 
@@ -609,3 +609,4 @@ auto limitDaysInit(long totalDays) {
   }
   return &limitDays;
 }
+

@@ -60,12 +60,12 @@ Or just pass one argument if you've read the same number of days' worth for each
 
 Or just don't pass any arguments and just hit Enter if you've done one day's worth of reading for each section.
 
-To compile the program, run `dmd -i DBibleReadingTracker.d` from the OS command line.
+To compile the program, run `dmd -i BibleReadingTracker.d` from the OS command line.
 On unix-like systems, you can also run the program as a script by making it executable and running it as
 `./BibleReadingTracker.d`
 Running the program as a script is no longer supported because that would require you to move the sdlang import folder into the same 
 directory as the BibleReadingTracker.d file, which is annoying and impractical (but you can do it if you want),
 and we now load the reading sections from a file, reducing the need to recompile.
-(To make it executable, first run `chmod 755 DBibleReadingTracker.d` or similar.)
+(To make it executable, first run `chmod 755 BibleReadingTracker.d` or similar.)
 Put either executable in your PATH variable and use it.
 
