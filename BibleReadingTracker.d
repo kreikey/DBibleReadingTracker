@@ -13,6 +13,7 @@ import std.math;
 import std.typecons;
 import std.format;
 import std.exception : assumeUnique;
+import std.meta;
 
 struct BookRange {
   string firstBook;
@@ -79,45 +80,42 @@ struct ChaptersDays {
   long days;
 
   this(string input) {
-    input.formattedRead!"%d|%d"(chapters, days);
+    input.formattedRead!"%d|%d"(this.tupleof);
   }
 
-  this(long _chapters, long _days) {
-    chapters = _chapters;
-    days = _days;
+  this(typeof(this.tupleof) args) {
+    this.tupleof = args;
   }
 
   string toString() {
-    return format!"%d|%d"(chapters, days);
+    return format!"%d|%d"(this.tupleof);
   }
 }
 
 struct ToRead {
-  private ulong next;
-  private Nullable!ulong tomorrow;
-  private Nullable!ulong total;
+  private long next;
+  private Nullable!long tomorrow;
+  private Nullable!long total;
 
   this(string input) {
-    ulong _tomorrow;
-    ulong _total;
+    long _tomorrow;
+    long _total;
 
     if (input.canFind(' ')) {
       input.formattedRead!"%d..%d %d"(next, _tomorrow, _total);
       tomorrow = _tomorrow;
       total = _total;
     } else {
-      next = input.to!ulong();
+      next = input.to!long();
     }
   }
 
-  this(ulong _next) {
+  this(long _next) {
     next = _next;
   }
 
-  this(ulong _next, ulong _tomorrow, ulong _total) {
-    next = _next;
-    tomorrow = _tomorrow;
-    total = _total;
+  this(AliasSeq!(long, long, long) args) {
+    this.tupleof = args;
   }
   
   string toString() {
@@ -136,14 +134,11 @@ struct Progress {
 
   this(string progress) { 
     double percentRead; // A throwaway variable to make formattedRead parse correctly. We don't need it because it's a computed property.
-    progress.formattedRead!"%d/%d %f%% %d/%d"(chaptersRead, totalChapters, percentRead, readThrough, multiplicity);
+    progress.formattedRead!"%d/%d %f%% %d/%d"(this.tupleof[0..2], percentRead, this.tupleof[2..4]);
   }
 
-  this(ulong _chaptersRead, ulong _totalChapters, long _readThrough, long _multiplicity) {
-    chaptersRead = _chaptersRead;
-    totalChapters = _totalChapters;
-    readThrough = _readThrough;
-    multiplicity = _multiplicity;
+  this(typeof(this.tupleof) args) {
+    this.tupleof = args;
   }
 
   double percentage() @property {
@@ -151,7 +146,7 @@ struct Progress {
   }
 
   string toString() {
-    return format!"%s/%s %.1f%% %s/%s"(chaptersRead, totalChapters, percentage, readThrough, multiplicity);
+    return format!"%s/%s %.1f%% %s/%s"(this.tupleof[0..2], percentage, this.tupleof[2..4]);
   }
 }
 
@@ -166,8 +161,8 @@ struct SectionSpec {
 }
 
 struct LabelledDate {
-  string label;
   Date date;
+  string label;
   alias date this;
 
   this(string labelledDateStr) {
@@ -180,9 +175,8 @@ struct LabelledDate {
     date = Date(shortYear + 2000, month, day);
   }
 
-  this(Date sourceDate, string _label) {
-    date = sourceDate;
-    label = _label;
+  this(typeof(this.tupleof) args) {
+    this.tupleof = args;
   }
 
   this(SysTime source, string _label) {
@@ -455,21 +449,19 @@ void main(string[] args) {
   daysRead.length = sectionRecords.length;
   long ndx = 1;
 
-  if (args.length - 1 == 0) {
+  if (args.length - 1 == 0)
     daysRead.fill(1);
-  } else if (args.length - 1 == 1) {
+  else if (args.length - 1 == 1)
     daysRead.fill(args[1].to!long());
-  } else {
-    foreach (record, ref count; lockstep(sectionRecords, daysRead)) {
+  else
+    foreach (record, ref count; lockstep(sectionRecords, daysRead))
       count = record.isActive() ? args[ndx++].to!long() : 0;
-    }
-  }
 
   // Get today's date
   LabelledDate todaysDate = Clock.currTime.LabelledDate(dateRow.lastModDate.label);
 
   // Initialize our updateRecord closure with the day offsets we calculated so we don't have to pass a bunch of reduntant arguments to it when we update records
-  auto updateRecord = updateRecordInit(dateRow.startDate, dateRow.endDate, dateRow.lastModDate, todaysDate);
+  auto updateRecord = updateRecordInit(dateRow.tupleof, todaysDate);
 
   string tableResetMsg = "";
   long daysElapsed = 0;
@@ -479,14 +471,14 @@ void main(string[] args) {
     tableResetMsg ~= "Table reset; ";
     dateRow.lastModDate.date = dateRow.startDate.date;
   }
+
   daysElapsed += (todaysDate - dateRow.lastModDate).total!"days";
 
   ReadingSection[string] sectionsByName = getSectionsFromFile("readingSections.sdl");
 
   // Update table with days read
-  foreach(ref record, daysRead; lockstep(sectionRecords, daysRead)) {
+  foreach(ref record, daysRead; lockstep(sectionRecords, daysRead))
     updateRecord(record, sectionsByName[record.section], daysRead);
-  }
 
   // Update last-modified date
   dateRow.lastModDate.date = todaysDate.date;
@@ -494,20 +486,17 @@ void main(string[] args) {
   // write updated table along with related information
   writeln(title);
   writeln(headSeparator);
-  with(dateRow) writefln!"%s\t%s\t%s"(lastModDate, startDate, endDate);
+  writefln!"%s\t%s\t%s"(dateRow.tupleof);
   writeln(mainSeparator);
   writeln(sectionHeader.join("\t"));
-  foreach(record; sectionRecords) {
-    with(record) {
-      writefln!"%s\t%s\t%s\t%s\t%s\t%s\t%s"(section, current, target, behind, lastRead, toRead, progress);
-    }
-  }
+  foreach(record; sectionRecords)
+    writefln!"%s\t%s\t%s\t%s\t%s\t%s\t%s"(record.tupleof);
   writeln(mainSeparator);
   writefln!"Status: %scompleted last reading in %s days"(tableResetMsg, daysElapsed);
 }
 
 // The return type of this function is void delegate(ref SectionSpec, ReadingSection, long), but auto is more readable.
-auto updateRecordInit(LabelledDate startDate, LabelledDate endDate, LabelledDate lastModDate, LabelledDate todaysDate) {
+auto updateRecordInit(LabelledDate lastModDate, LabelledDate startDate, LabelledDate endDate, LabelledDate todaysDate) {
   bool reset = lastModDate < startDate;
 
   if (reset)
