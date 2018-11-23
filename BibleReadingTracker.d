@@ -158,6 +158,9 @@ struct SectionSpec {
   ChaptersDays lastRead;
   ToRead toRead;
   Progress progress;
+  string toString() {
+    return format!"%s\t%s\t%s\t%s\t%s\t%s\t%s"(this.tupleof);
+  }
 }
 
 struct LabelledDate {
@@ -204,6 +207,10 @@ struct DateRowSpec {
   LabelledDate lastModDate;
   LabelledDate startDate;
   LabelledDate endDate;
+
+  string toString() {
+    return format!"%s\t%s\t%s"(this.tupleof);
+  }
 }
 
 struct Chapter {
@@ -486,11 +493,11 @@ void main(string[] args) {
   // write updated table along with related information
   writeln(title);
   writeln(headSeparator);
-  writefln!"%s\t%s\t%s"(dateRow.tupleof);
+  writeln(dateRow);
   writeln(mainSeparator);
   writeln(sectionHeader.join("\t"));
   foreach(record; sectionRecords)
-    writefln!"%s\t%s\t%s\t%s\t%s\t%s\t%s"(record.tupleof);
+    writeln(record);
   writeln(mainSeparator);
   writefln!"Status: %scompleted last reading in %s days"(tableResetMsg, daysElapsed);
 }
