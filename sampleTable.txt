@@ -1,12 +1,12 @@
-Bible Reading 4.0
+Bible Reading 5.0
 --------------------------------------------------------------------------------------------------------------------------------------------
 Date: 3/12/17	Start: 1/1/18	End: 12/31/18
 --------------------------------------------------------------------------------------------------------------------------------------------
 section	current	target	behind chs|days	last read chs|days	to read ch..ch ch	progress ch/ch % r/m
-Old Testament	2 Samuel 24	2 Samuel 24	0|0	5|1	4	291/748 38.9% 1/2
-New Testament	Acts 12	Acts 12	0|0	2|1	1	101/260 38.8% 1/2
-Psalms	Psalms 86	Psalms 87	1|1	0|0	1	86/150 57.3% 1/3
-Proverbs	Proverbs 9	Proverbs 10	1|1	0|0	1	9/31 29.0% 3/12
+Old Testament	2 Samuel 24	2 Samuel 24	0|0	5|1	4	291/748   39%  1/2
+New Testament	Acts 12	Acts 12	0|0	2|1	1	101/260   39%  1/2
+Psalms	Psalms 86	Psalms 87	1|1	0|0	1	86/150   57%  1/3
+Proverbs	Proverbs 9	Proverbs 10	1|1	0|0	1	9/31   29%  3/12
 --------------------------------------------------------------------------------------------------------------------------------------------
 Status: completed last reading in 1 days
 

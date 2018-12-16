@@ -133,20 +133,23 @@ struct Progress {
   long multiplicity;
 
   this(string progress) { 
-    double percentRead; // A throwaway variable to make formattedRead parse correctly. We don't need it because it's a computed property.
-    progress.formattedRead!"%d/%d %f%% %d/%d"(this.tupleof[0..2], percentRead, this.tupleof[2..4]);
+    long percentRead; // A throwaway variable to make formattedRead parse correctly. We don't need it because it's a computed property.
+    progress.formattedRead!"%d/%d %d%% %d/%d"(this.tupleof[0..2], percentRead, this.tupleof[2..4]);
   }
 
   this(typeof(this.tupleof) args) {
     this.tupleof = args;
   }
 
-  double percentage() @property {
-    return double(chaptersRead) / totalChapters * 100;
+  long percentage() @property {
+    return lrint(real(chaptersRead) / real(totalChapters) * 100);
   }
 
   string toString() {
-    return format!"%s/%s %.1f%% %s/%s"(this.tupleof[0..2], percentage, this.tupleof[2..4]);
+    string chChStr = format!"%d/%d"(this.tupleof[0..2]);
+    string percentStr = format!"%d%%"(this.percentage);
+    string mulStr = format!"%d/%d"(this.tupleof[2..4]);
+    return format!"%-10s%-5s%-5s"(chChStr, percentStr, mulStr);
   }
 }
 
@@ -159,7 +162,7 @@ struct SectionSpec {
   ToRead toRead;
   Progress progress;
   string toString() {
-    return format!"%s\t%s\t%s\t%s\t%s\t%s\t%s"(this.tupleof);
+    return format("%s\t%s\t%s\t%s\t%s\t%s\t%s", this.tupleof);
   }
 }
 
