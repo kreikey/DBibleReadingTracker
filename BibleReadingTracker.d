@@ -461,8 +461,8 @@ void main(string[] args) {
   else if (args.length - 1 == 1)
     daysRead.fill(args[1].to!long());
   else
-    foreach (record, ref count; lockstep(sectionRecords, daysRead))
-      count = record.isActive() ? args[ndx++].to!long() : 0;
+    lockstep(sectionRecords, daysRead)
+      .each!((r, ref c) => c = r.isActive() ? args[ndx++].to!long() : 0);
 
   // Get today's date
   LabelledDate todaysDate = Clock.currTime.LabelledDate(dateRow.lastModDate.label);
@@ -484,8 +484,8 @@ void main(string[] args) {
   ReadingSection[string] sectionsByName = getSectionsFromFile("readingSections.sdl");
 
   // Update table with days read
-  foreach(ref record, daysRead; lockstep(sectionRecords, daysRead))
-    updateRecord(record, sectionsByName[record.section], daysRead);
+  lockstep(sectionRecords, sectionRecords.map!(r => sectionsByName[r.section]), daysRead)
+    .each!(updateRecord);
 
   // Update last-modified date
   dateRow.lastModDate.date = todaysDate.date;
@@ -496,8 +496,7 @@ void main(string[] args) {
   writeln(dateRow);
   writeln(mainSeparator);
   writeln(sectionHeader.join("\t"));
-  foreach(record; sectionRecords)
-    writeln(record);
+  sectionRecords.each!(writeln);
   writeln(mainSeparator);
   writefln!"Status: %scompleted last reading in %s days"(tableResetMsg, daysElapsed);
 }
@@ -568,25 +567,13 @@ auto updateRecordInit(LabelledDate lastModDate, LabelledDate startDate, Labelled
 }
 
 ReadingSection[string] getSectionsFromFile(string filename) {
-  Tag root = parseFile(filename);
-  ReadingSection[string] sectionsByName;
-
-  foreach (section; root.tags["section"]) {
-    string sectionName = section.expectValue!string;
-
-    BookRange[] bookRanges = [];
-
-    foreach (bookrange; section.tags["bookrange"]) {
-      string first = bookrange.expectAttribute!string("first");
-      string last = bookrange.expectAttribute!string("last");
-      bookRanges ~= BookRange(first, last);
-    }
-
-    auto readingSection = ReadingSection(bookRanges);
-    sectionsByName[sectionName] = readingSection;
-  }
-
-  return sectionsByName;
+  auto sections = parseFile(filename).tags["section"];
+  return sections.map!(s => s.expectValue!string)
+    .zip(sections.map!(s => s.tags["bookrange"]
+      .map!(r => BookRange(r.expectAttribute!string("first"), r.expectAttribute!string("last")))
+      .array
+      .ReadingSection()))
+    .assocArray();
 }
 
 bool isActive(SectionSpec record) {
@@ -598,10 +585,7 @@ bool isActive(SectionSpec record) {
 
 auto limitDaysInit(long totalDays) {
   void limitDays(long*[] days ...) {
-    foreach (d; days) {
-      if (*d > totalDays)
-        *d = totalDays;
-    }
+    days.each!(d => *d = *d > totalDays ? totalDays : *d);
   }
   return &limitDays;
 }
