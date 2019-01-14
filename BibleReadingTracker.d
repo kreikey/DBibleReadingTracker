@@ -252,16 +252,15 @@ struct ReadingSection {
   int totalChapters;
   
   this(BookRange[] bookRangeList) {
-    bookChapterIDs = bookRangeList
-      .map!(r => r
-        .byID
-        .map!(b => iota!int(1, books[b].chapters + 1)
-          .map!(c => BookChapter(b, c))
-          .array())
-        .join())
-      .join();
+    foreach (bookRange; bookRangeList) {
+      foreach (book; bookRange.byID()) {
+        foreach (chapter; iota!int(1, book.chapters + 1)) {
+          bookChapterIDs ~= BookChapter(book, chapter);
+        }
+      }
+    }
 
-    totalChapters = bookChapterIDs.length.to!int();
+    totalChapters = bookIDs.map!(a => chapters[a]).sum();
   } 
 
   auto byChapter() {
