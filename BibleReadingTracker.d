@@ -529,6 +529,7 @@ shared static this() {
   auto temp = iota!int(0, books.length.to!int())
     .map!(i => books[i].name, i => i)
     .assocArray();
+  
   temp.rehash();
   idByBook = assumeUnique(temp);
   resetIeeeFlags();
