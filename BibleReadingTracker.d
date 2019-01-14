@@ -585,10 +585,10 @@ void main(string[] args) {
   ReadingSection[string] sectionsByName = getSectionsFromFile("readingSections.sdl");
 
   // Update table with days read
-  lockstep(sectionRecords.filter!isActive(), sectionRecords.map!(r => sectionsByName[r.section])(), daysRead)
-    .each!updateRecord();
-  lockstep(sectionRecords.filter!(not!isActive)(), sectionRecords.map!(r => sectionsByName[r.section])(), (0).repeat(sectionRecords.length - activeCount))
-    .each!updateRecord();
+  foreach(ref record, daysRead; lockstep(sectionRecords.filter!isActive(), daysRead))
+    updateRecord(record, sectionsByName[record.section], daysRead);
+  foreach(ref record, zeros; lockstep(sectionRecords.filter!(not!isActive), (0).repeat(sectionRecords.length - activeCount))) {
+    updateRecord(record, sectionsByName[record.section], zeros);
 
   // Update last-modified date
   dateRow.lastModDate.date = todaysDate.date;
@@ -599,7 +599,8 @@ void main(string[] args) {
   writeln(dateRow);
   writeln(mainSeparator);
   writeln(sectionHeader.join("\t"));
-  sectionRecords.each!writeln();
+  foreach(record; sectionRecords)
+    writeln(record);
   writeln(mainSeparator);
   writefln!"Status: %scompleted last reading in %s days"(tableResetMsg, daysElapsed);
 }
@@ -661,12 +662,25 @@ auto updateRecordInit(LabelledDate lastModDate, LabelledDate startDate, Labelled
 }
 
 ReadingSection[string] getSectionsFromFile(string filename) {
-  auto sections = parseFile(filename).tags["section"];
-  return sections.map!(s => tuple(s.expectValue!string, s.tags["bookrange"]
-      .map!(r => BookRange(r.expectAttribute!string("first"), r.expectAttribute!string("last")))
-      .array
-      .ReadingSection()))
-    .assocArray();
+  Tag root = parseFile(filename);
+  ReadingSection[string] sectionsByName;
+
+  foreach (section; root.tags["section"]) {
+    string sectionName = section.expectValue!string;
+
+    BookRange[] bookRanges = [];
+
+    foreach (bookrange; section.tags["bookrange"]) {
+      string first = bookrange.expectAttribute!string("first");
+      string last = bookrange.expectAttribute!string("last");
+      bookRanges ~= BookRange(first, last);
+    }
+
+    auto readingSection = ReadingSection(bookRanges);
+    sectionsByName[sectionName] = readingSection;
+  }
+
+  return sectionsByName;
 }
 
 bool isActive(SectionSpec record) {
