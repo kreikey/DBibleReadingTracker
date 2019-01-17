@@ -21,63 +21,63 @@ struct BookRange {
   string firstBook;
   string lastBook;
 
-  auto byID() {
-    static struct Result {
-      int frontID;
-      int backID;
+  struct BookRangeIDResult {
+    int frontID;
+    int backID;
 
-      this(int _frontID, int _backID) {
-        frontID = _frontID;
-        backID = _backID;
-      }
+    this(int _frontID, int _backID) {
+      frontID = _frontID;
+      backID = _backID;
+    }
 
       void popFront() {
         if (empty)
           throw new RangeError("BibleReadingTracker.d");
 
-        frontID++;
-     }
-
-      int front() @property {
-        return frontID;
-      }
-
-      bool empty() @property {
-        return (frontID > backID);
-      }
+      frontID++;
     }
 
-    return Result(idByBook[firstBook], idByBook[lastBook]);
+    int front() @property {
+      return frontID;
+    }
+
+    bool empty() @property {
+      return (frontID > backID);
+    }
+  }
+
+  auto byID() {
+    return BookRangeIDResult(idByBook[firstBook], idByBook[lastBook]);
+  }
+
+  struct BookRangeNameResult {
+    int frontID;
+    int backID;
+
+    this(int _frontID, int _backID) {
+      frontID = _frontID;
+      backID = _backID;
+    }
+
+    void popFront() {
+      if (empty) {
+        throw new RangeError("BibleReadingTracker.d");
+      }
+
+      frontID++;
+    }
+
+    Book front() @property {
+      return books[frontID];
+    }
+
+    bool empty() @property {
+      return (frontID > backID);
+    }
   }
 
   auto byBook() {
-    static struct Result {
-      int frontID;
-      int backID;
-
-      this(int _frontID, int _backID) {
-        frontID = _frontID;
-        backID = _backID;
-      }
-   
-      void popFront() {
-        if (empty) {
-          throw new RangeError("BibleReadingTracker.d");
-        }
-
-        frontID++;
-      }
-
-      Book front() @property {
-        return books[frontID];
-      }
-
-      bool empty() @property {
-        return (frontID > backID);
-      }
-    }
-
-    return Result(idByBook[firstBook], idByBook[lastBook]);
+    return BookRangeNameResult(idByBook[firstBook], idByBook[lastBook]);
   }
 }
 unittest {
@@ -326,101 +326,97 @@ struct ReadingSection {
     return Result(this.totalChapters, this.bookChapterIDs);
   }
 
-  auto byDayEdge(int totalDays, int multiplicity) {
-    alias ChaptersType = typeof(this.byChapter.cycle());
+  struct ByDayEdgeResult {
+    int chaptersInSection;
+    int totalDays;
+    int totalChapters;
+    int frontEdge;
+    int backEdge;
+    size_t length;
 
-    static struct Result {
-      int chaptersInSection;
-      int totalDays;
-      int totalChapters;
-      int frontEdge;
-      int backEdge;
-      size_t length;
-      ChaptersType chapters;
-
-      this(int _totalDays, int _multiplicity, int _chaptersInSection, ChaptersType _chapters) {
-        chaptersInSection = _chaptersInSection;
-        totalChapters = chaptersInSection * _multiplicity;
-        frontEdge = 0;
-        backEdge = _totalDays;
-        totalDays = _totalDays;
-        length = totalDays + 1;
-        chapters = _chapters;
-      }
-
-      Chapter front() @property {
-        int planID = (double(frontEdge) * totalChapters / totalDays).roundTo!int();
-        int progID = (planID - 1) % chaptersInSection + 1;
-        string chapterName;
-
-        if (planID == totalChapters)
-          chapterName = "The End";
-        else
-          chapterName = chapters[planID];
-
-        return Chapter(chapterName, planID, progID);
-      }
-
-      Chapter back() @property {
-        int planID = (double(backEdge) * totalChapters / totalDays).roundTo!int();
-        int progID = (planID - 1) % chaptersInSection + 1;
-        string chapterName;
-
-        if (planID == totalChapters)
-          chapterName = "The End";
-        else
-          chapterName = chapters[planID];
-
-        return Chapter(chapterName, planID, progID);
-      }
-
-       void popFront() {
-        if (empty)
-          throw new RangeError("BibleReadingTracker.d");
-
-        frontEdge++;
-        length--;
-      }
-
-      void popBack() {
-        if (empty)
-          throw new RangeError("BibleReadingTracker.d");
-
-        backEdge--;
-        length--;
-      }
-
-      bool empty() @property {
-        return frontEdge > backEdge;
-      }
-
-      auto save() @property {
-        auto copy = this;
-        return copy;
-      }
-
-      Chapter opIndex(size_t idx) {
-        if (idx >= length)
-          throw new RangeError("BibleReadingTracker.d");
-
-        string chapterName;
-        int planID = (double(idx + frontEdge) * totalChapters / totalDays).roundTo!int();
-        int progID = (planID - 1) % chaptersInSection + 1;
-
-        if (planID == totalChapters)
-          chapterName = "The End";
-        else
-          chapterName = chapters[planID];
-
-        return Chapter(chapterName, planID, progID);
-      }
-
-      size_t opDollar() {
-        return length;
-      }
+    this(int _totalDays, int _multiplicity, int _chaptersInSection) {
+      chaptersInSection = _chaptersInSection;
+      totalChapters = chaptersInSection * _multiplicity;
+      frontEdge = 0;
+      backEdge = _totalDays;
+      totalDays = _totalDays;
+      length = totalDays + 1;
     }
 
-    return Result(totalDays, multiplicity, this.totalChapters, this.byChapter.cycle());
+    Chapter front() @property {
+      int planID = (double(frontEdge) * totalChapters / totalDays).roundTo!int();
+      int progID = (planID - 1) % chaptersInSection + 1;
+      string chapterName;
+
+      if (planID == totalChapters)
+        chapterName = "The End";
+      else
+        chapterName = chapters[planID];
+
+      return Chapter(chapterName, planID, progID);
+    }
+
+    Chapter back() @property {
+      int planID = (double(backEdge) * totalChapters / totalDays).roundTo!int();
+      int progID = (planID - 1) % chaptersInSection + 1;
+      string chapterName;
+
+      if (planID == totalChapters)
+        chapterName = "The End";
+      else
+        chapterName = chapters[planID];
+
+      return Chapter(chapterName, planID, progID);
+    }
+
+     void popFront() {
+      if (empty)
+        throw new RangeError("BibleReadingTracker.d");
+
+      frontEdge++;
+      length--;
+    }
+
+    void popBack() {
+      if (empty)
+        throw new RangeError("BibleReadingTracker.d");
+
+      backEdge--;
+      length--;
+    }
+
+    bool empty() @property {
+      return frontEdge > backEdge;
+    }
+
+    auto save() @property {
+      auto copy = this;
+      return copy;
+    }
+
+    Chapter opIndex(size_t idx) {
+      if (idx >= length)
+        throw new RangeError("BibleReadingTracker.d");
+
+      string chapterName;
+      int planID = (double(idx + frontEdge) * totalChapters / totalDays).roundTo!int();
+      int progID = (planID - 1) % chaptersInSection + 1;
+
+      if (planID == totalChapters)
+        chapterName = "The End";
+      else
+        chapterName = chapters[planID];
+
+      return Chapter(chapterName, planID, progID);
+    }
+
+    size_t opDollar() {
+      return length;
+    }
+  }
+
+  auto byDayEdge(int totalDays, int multiplicity) {
+    return byDayEdgeResult(totalDays, multiplicity, this.byChapter.cycle());
   }
 }
 unittest {
