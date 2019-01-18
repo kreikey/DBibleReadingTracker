@@ -526,10 +526,12 @@ static Book[] books = [
 immutable int[string] idByBook;
 
 shared static this() {
-  auto temp = iota!int(0, books.length.to!int())
-    .map!(i => books[i].name, i => i)
-    .assocArray();
-  
+  int[string] temp;
+
+  foreach (i, book; books) {
+    temp[book.name] = i;
+  }
+
   temp.rehash();
   idByBook = assumeUnique(temp);
   resetIeeeFlags();
