@@ -20,8 +20,8 @@ struct BookRange {
   string lastBook;
 
   auto byID() {
-    ulong frontID = idByBook[firstBook];
-    ulong backID = idByBook[lastBook];
+    int frontID = idByBook[firstBook];
+    int backID = idByBook[lastBook];
 
     struct Result {
       void popFront() {
@@ -32,7 +32,7 @@ struct BookRange {
         frontID++;
       }
 
-      ulong front() @property {
+      int front() @property {
         return frontID;
       }
 
@@ -45,8 +45,8 @@ struct BookRange {
   }
 
   auto byBook() {
-    ulong frontID = idByBook[firstBook];
-    ulong backID = idByBook[lastBook];
+    int frontID = idByBook[firstBook];
+    int backID = idByBook[lastBook];
    
     struct Result {
       void popFront() {
@@ -76,8 +76,8 @@ unittest {
 }
 
 struct ChaptersDays {
-  long chapters;
-  long days;
+  int chapters;
+  int days;
 
   this(string input) {
     input.formattedRead!"%d|%d"(this.tupleof);
@@ -93,28 +93,28 @@ struct ChaptersDays {
 }
 
 struct ToRead {
-  private long next;
-  private Nullable!long tomorrow;
-  private Nullable!long total;
+  private int next;
+  private Nullable!int tomorrow;
+  private Nullable!int total;
 
   this(string input) {
-    long _tomorrow;
-    long _total;
+    int _tomorrow;
+    int _total;
 
     if (input.canFind(' ')) {
       input.formattedRead!"%d..%d %d"(next, _tomorrow, _total);
       tomorrow = _tomorrow;
       total = _total;
     } else {
-      next = input.to!long();
+      next = input.to!int();
     }
   }
 
-  this(long _next) {
+  this(int _next) {
     next = _next;
   }
 
-  this(AliasSeq!(long, long, long) args) {
+  this(AliasSeq!(int, int, int) args) {
     this.tupleof = args;
   }
   
@@ -127,13 +127,13 @@ struct ToRead {
 }
 
 struct Progress {
-  ulong chaptersRead;
-  ulong totalChapters;
-  long readThrough;
-  long multiplicity;
+  int chaptersRead;
+  int totalChapters;
+  int readThrough;
+  int multiplicity;
 
   this(string progress) { 
-    long percentRead; // A throwaway variable to make formattedRead parse correctly. We don't need it because it's a computed property.
+    int percentRead; // A throwaway variable to make formattedRead parse correctly. We don't need it because it's a computed property.
     progress.formattedRead!"%d/%d %d%% %d/%d"(this.tupleof[0..2], percentRead, this.tupleof[2..4]);
   }
 
@@ -141,8 +141,8 @@ struct Progress {
     this.tupleof = args;
   }
 
-  long percentage() @property {
-    return lrint(real(chaptersRead) / real(totalChapters) * 100);
+  int percentage() @property {
+    return (double(chaptersRead) / totalChapters * 100).roundTo!int();
   }
 
   string toString() {
@@ -219,13 +219,13 @@ struct DateRowSpec {
 struct Chapter {
   // We have 2 IDs: the plan ID and the section ID. Section ID indexes just the books in the section. Plan ID includes multiplicity, indexing the books numerous times, depending on multiplicity. The range of planID is a multiple of the total number of chapters in the section.
   string name;
-  ulong planID;
-  ulong secID;
+  int planID;
+  int secID;
 }
 
 struct ReadingSection {
-  ulong[] bookIDs;
-  ulong totalChapters;
+  int[] bookIDs;
+  int totalChapters;
   
   this(BookRange[] bookRangeList) {
     bookIDs = bookRangeList
@@ -239,7 +239,7 @@ struct ReadingSection {
       .sum();
   } 
 
-  string decodeChapterID(ulong chapterID) {
+  string decodeChapterID(int chapterID) {
     auto chaptersBook = bookIDs
       .map!(i => books[i].chapters)
       .cumulativeFold!((a, b) => a + b)
@@ -247,23 +247,23 @@ struct ReadingSection {
       .find!(a => a[0] >= chapterID)
       .front;
 
-    ulong bookID = chaptersBook[1];
-    ulong chapter = chapterID - (chaptersBook[0] - books[bookID].chapters);
+    int bookID = chaptersBook[1];
+    int chapter = chapterID - (chaptersBook[0] - books[bookID].chapters);
 
     return format!"%s %d"(books[bookID].name, chapter);
   }
 
-  long encodeChapterID(string bookAndChapter) {
+  int encodeChapterID(string bookAndChapter) {
     string bookName;
-    ulong index;
-    ulong chapter;
-    ulong splitNdx;
+    int index;
+    int chapter;
+    long splitNdx;
 
-    splitNdx = bookAndChapter.length - 1 - bookAndChapter.retro.indexOf(' ');
+    splitNdx = (bookAndChapter.length - 1 - bookAndChapter.retro.indexOf(' '));
     bookName = bookAndChapter[0 .. splitNdx];
-    chapter = bookAndChapter[splitNdx + 1 .. $].to!ulong;
+    chapter = bookAndChapter[splitNdx + 1 .. $].to!int();
 
-    ulong bookID = idByBook[bookName];
+    int bookID = idByBook[bookName];
 
     return bookIDs
       .until(bookID)
@@ -271,17 +271,17 @@ struct ReadingSection {
       .sum() + chapter;
   }
 
-  auto byDay(ulong totalDays, ulong multiplicity) {
+  auto byDay(int totalDays, int multiplicity) {
     ReadingSection* parent = &this;
 
     struct Result {
-      ulong chaptersInSection;
-      ulong totalChapters;
-      ulong frontDay;
-      ulong backDay;
-      ulong length;
+      int chaptersInSection;
+      int totalChapters;
+      int frontDay;
+      int backDay;
+      size_t length;
 
-      this(ulong _totalDays, ulong _multiplicity) { 
+      this(int _totalDays, int _multiplicity) {
         chaptersInSection = parent.totalChapters;
         totalChapters = chaptersInSection * _multiplicity;
         frontDay = 1;
@@ -290,15 +290,15 @@ struct ReadingSection {
       }
 
       Chapter front() @property {
-        ulong planID = lrint(double(frontDay) * totalChapters / (length - 1));
-        ulong secID = (planID - 1) % chaptersInSection + 1;
+        int planID = (double(frontDay) * totalChapters / (length - 1)).roundTo!int();
+        int secID = (planID - 1) % chaptersInSection + 1;
         string chapterName = parent.decodeChapterID(secID);
         return Chapter(chapterName, planID, secID);
       }
 
       Chapter back() @property {
-        ulong planID = lrint(double(backDay) * totalChapters / (length - 1));
-        ulong secID = (planID - 1) % chaptersInSection + 1;
+        int planID = (double(backDay) * totalChapters / (length - 1)).roundTo!int();
+        int secID = (planID - 1) % chaptersInSection + 1;
         string chapterName = parent.decodeChapterID(secID);
         return Chapter(chapterName, planID, secID);
       }
@@ -331,13 +331,13 @@ struct ReadingSection {
           throw new RangeError("BibleReadingTracker.d");
         if (currentDay < 0)
           throw new RangeError("BibleReadingTracker.d");
-        ulong planID = lrint(double(currentDay) * totalChapters / (length - 1));
-        ulong secID = (planID - 1) % chaptersInSection + 1;
+        int planID = (double(currentDay) * totalChapters / (length - 1)).roundTo!int();
+        int secID = (planID - 1) % chaptersInSection + 1;
         string chapterName = parent.decodeChapterID(secID);
         return Chapter(chapterName, planID, secID);
       }
 
-      ulong opDollar() {
+      size_t opDollar() {
         return length;
       }
     }
@@ -348,7 +348,7 @@ struct ReadingSection {
 
 struct Book {
   string name;
-  ulong chapters;
+  int chapters;
 }
 
 static Book[] books = [
@@ -420,12 +420,12 @@ static Book[] books = [
   {"Revelation", 22}
 ];
 
-immutable ulong[string] idByBook;
+immutable int[string] idByBook;
 
 static this() {
   auto temp = books
     .map!(b => b.name)
-    .enumerate
+    .enumerate!(int)
     .map!(reverse)
     .assocArray();
   temp.rehash();
@@ -455,17 +455,17 @@ void main(string[] args) {
   SectionSpec[] sectionRecords = sectionRecordsRange.array();
 
   // Fix up number of daysRead arguments
-  long[] daysRead;
+  int[] daysRead;
   daysRead.length = sectionRecords.length;
-  long ndx = 1;
+  int ndx = 1;
 
   if (args.length - 1 == 0)
     daysRead.fill(1);
   else if (args.length - 1 == 1)
-    daysRead.fill(args[1].to!long());
+    daysRead.fill(args[1].to!int());
   else
     lockstep(sectionRecords, daysRead)
-      .each!((r, ref c) => c = r.isActive() ? args[ndx++].to!long() : 0);
+      .each!((r, ref c) => c = r.isActive() ? args[ndx++].to!int() : 0);
 
   // Get today's date
   LabelledDate todaysDate = Clock.currTime.LabelledDate(dateRow.lastModDate.label);
@@ -474,7 +474,7 @@ void main(string[] args) {
   auto updateRecord = updateRecordInit(dateRow.tupleof, todaysDate);
 
   string tableResetMsg = "";
-  long daysElapsed = 0;
+  int daysElapsed = 0;
 
   if (dateRow.lastModDate < dateRow.startDate) {
     daysElapsed++;
@@ -504,7 +504,7 @@ void main(string[] args) {
   writefln!"Status: %scompleted last reading in %s days"(tableResetMsg, daysElapsed);
 }
 
-// The return type of this function is void delegate(ref SectionSpec, ReadingSection, long), but auto is more readable.
+// The return type of this function is void delegate(ref SectionSpec, ReadingSection, int), but auto is more readable.
 auto updateRecordInit(LabelledDate lastModDate, LabelledDate startDate, LabelledDate endDate, LabelledDate todaysDate) {
   bool reset = lastModDate < startDate;
 
@@ -512,22 +512,22 @@ auto updateRecordInit(LabelledDate lastModDate, LabelledDate startDate, Labelled
     lastModDate.date = startDate.date;
 
   // Initialize the day offsets we'll use to do our calculations
-  long totalDays = (endDate - startDate).total!"days" + 1;
+  int totalDays = ((endDate - startDate).total!"days" + 1).to!int();
   auto limitDays = limitDaysInit(totalDays);
 
-  long lastDay = (lastModDate - startDate).total!"days" + 1;
-  long today = (todaysDate - startDate).total!"days" + 1;
-  long tomorrow = today + 1;
+  int lastDay = ((lastModDate - startDate).total!"days" + 1).to!int();
+  int today = ((todaysDate - startDate).total!"days" + 1).to!int();
+  int tomorrow = today + 1;
 
   limitDays(&lastDay, &today, &tomorrow);
 
-  void updateRecord(ref SectionSpec record, ReadingSection section, long daysRead) {
-    long multiplicity = record.progress.multiplicity;
-    long daysBehind = record.behind.days;
+  void updateRecord(ref SectionSpec record, ReadingSection section, int daysRead) {
+    int multiplicity = record.progress.multiplicity;
+    int daysBehind = record.behind.days;
     auto chapterByDay = section.byDay(totalDays, multiplicity);
     assert(isRandomAccessRange!(typeof(chapterByDay)));
 
-    long lastCurDay = lastDay - daysBehind;
+    int lastCurDay = lastDay - daysBehind;
 
     if (reset) {
       lastCurDay = 0;
@@ -537,10 +537,10 @@ auto updateRecordInit(LabelledDate lastModDate, LabelledDate startDate, Labelled
       daysRead = totalDays - lastCurDay;
     }
 
-    long currentDay = lastCurDay + daysRead;
+    int currentDay = lastCurDay + daysRead;
     limitDays(&currentDay);
 
-    long nextDay = currentDay + 1; // handle chaptersToRead issue here by limiting nextDay depending on totalDays
+    int nextDay = currentDay + 1; // handle chaptersToRead issue here by limiting nextDay depending on totalDays
     limitDays(&nextDay);
 
     Chapter lastCurChapter = chapterByDay[lastCurDay];
@@ -549,12 +549,12 @@ auto updateRecordInit(LabelledDate lastModDate, LabelledDate startDate, Labelled
     Chapter targetChapter = chapterByDay[today];
     Chapter tomorrowsChapter = chapterByDay[tomorrow];
 
-    long readThrough = (curChapter.planID - 1) / section.totalChapters + 1;
-    long chaptersBehind = targetChapter.planID - curChapter.planID;
+    int readThrough = (curChapter.planID - 1) / section.totalChapters + 1;
+    int chaptersBehind = targetChapter.planID - curChapter.planID;
     daysBehind = today - currentDay;
-    long chaptersRead = curChapter.planID - lastCurChapter.planID;
-    long chaptersToReadNext = nextChapter.planID - curChapter.planID;
-    long chaptersToReadTomorrow = tomorrowsChapter.planID - targetChapter.planID;
+    int chaptersRead = curChapter.planID - lastCurChapter.planID;
+    int chaptersToReadNext = nextChapter.planID - curChapter.planID;
+    int chaptersToReadTomorrow = tomorrowsChapter.planID - targetChapter.planID;
 
     record.current = curChapter.name;
     record.target = targetChapter.name;
@@ -580,14 +580,14 @@ ReadingSection[string] getSectionsFromFile(string filename) {
 }
 
 bool isActive(SectionSpec record) {
-  long totalChapters = record.progress.multiplicity * record.progress.totalChapters;
-  long chaptersRead = (record.progress.readThrough - 1) * record.progress.totalChapters + record.progress.chaptersRead;
+  int totalChapters = record.progress.multiplicity * record.progress.totalChapters;
+  int chaptersRead = (record.progress.readThrough - 1) * record.progress.totalChapters + record.progress.chaptersRead;
 
   return (chaptersRead < totalChapters);
 }
 
-auto limitDaysInit(long totalDays) {
-  void limitDays(long*[] days ...) {
+auto limitDaysInit(int totalDays) {
+  void limitDays(int*[] days ...) {
     days.each!(d => *d = *d > totalDays ? totalDays : *d);
   }
   return &limitDays;
