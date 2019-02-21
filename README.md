@@ -24,6 +24,7 @@ To make it work for you:
 Don't worry about the actual values in the table. It will be reset when you start your reading plan.
 
 Define your reading sections:
+- Rename sampleReadingSections.sdl to readingSections.sdl and modify it to your heart's content
 - copy readingSections.sdl into your home directory or wherever you will call the program from
 - define your sections which correspond to the sections column in your reading table
 - define each section as a list of bookranges where "first" is the first book in the range and "last" is the last book
