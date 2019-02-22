@@ -434,6 +434,9 @@ static this() {
 }
 
 void main(string[] args) {
+  // Copy and transform command-line arguments
+  int[] argsCopy = args[1 .. $].map!(x => x.to!int()).array();
+
   // Read in the chunk of text
   string[] text = stdin.byLineCopy.array();
 
@@ -457,15 +460,21 @@ void main(string[] args) {
   // Fix up number of daysRead arguments
   int[] daysRead;
   daysRead.length = sectionRecords.length;
-  int ndx = 1;
+  int ndx = 0;
 
-  if (args.length - 1 == 0)
+  int activeCount = sectionRecords.map!(isActive).sum();
+
+  if (argsCopy.length == 0)
     daysRead.fill(1);
-  else if (args.length - 1 == 1)
-    daysRead.fill(args[1].to!int());
-  else
+  else if (argsCopy.length == 1)
+    daysRead.fill(argsCopy[0]);
+  else {
+    if (argsCopy.length < activeCount)
+      argsCopy ~= argsCopy[$ - 1].repeat(activeCount - argsCopy.length).array();
+
     lockstep(sectionRecords, daysRead)
-      .each!((r, ref c) => c = r.isActive() ? args[ndx++].to!int() : 0);
+      .each!((r, ref c) => c = r.isActive() ? argsCopy[ndx++] : 0);
+  }
 
   // Get today's date
   LabelledDate todaysDate = Clock.currTime.LabelledDate(dateRow.lastModDate.label);
