@@ -435,7 +435,7 @@ static this() {
 
 void main(string[] args) {
   // Copy and transform command-line arguments
-  int[] argsCopy = args[1 .. $].map!(x => x.to!int()).array();
+  int[] argsCopy = args[1 .. $].map!(to!int).array();
 
   // Read in the chunk of text
   string[] text = stdin.byLineCopy.array();
