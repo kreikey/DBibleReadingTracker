@@ -220,7 +220,7 @@ struct Chapter {
   // We have 2 IDs: the plan ID and the section ID. Section ID indexes just the books in the section. Plan ID includes multiplicity, indexing the books numerous times, depending on multiplicity. The range of planID is a multiple of the total number of chapters in the section.
   string name;
   int planID;
-  int progID;
+  int secID;
 }
 
 struct ReadingSection {
@@ -244,11 +244,11 @@ struct ReadingSection {
       .map!(i => books[i].chapters)
       .cumulativeFold!((a, b) => a + b)
       .zip(bookIDs)
-      .find!(a => a[0] > chapterID)
+      .find!(a => a[0] >= chapterID)
       .front;
 
     int bookID = chaptersBook[1];
-    int chapter = chapterID - chaptersBook[0] + books[bookID].chapters + 1;
+    int chapter = chapterID - (chaptersBook[0] - books[bookID].chapters);
 
     return format!"%s %d"(books[bookID].name, chapter);
   }
@@ -268,59 +268,57 @@ struct ReadingSection {
     return bookIDs
       .until(bookID)
       .map!(i => books[i].chapters)
-      .sum() + chapter - 1;
+      .sum() + chapter;
   }
 
-  auto byDayEdge(int totalDays, int multiplicity) {
+  auto byDay(int totalDays, int multiplicity) {
     ReadingSection* parent = &this;
 
     struct Result {
       int chaptersInSection;
-      int totalDays;
       int totalChapters;
-      int frontEdge;
-      int backEdge;
+      int frontDay;
+      int backDay;
       size_t length;
 
       this(int _totalDays, int _multiplicity) {
         chaptersInSection = parent.totalChapters;
         totalChapters = chaptersInSection * _multiplicity;
-        frontEdge = 0;
-        backEdge = _totalDays - 1;
-        totalDays = _totalDays;
-        length = totalDays + 1;
+        frontDay = 1;
+        backDay = _totalDays;
+        length = _totalDays + 1;
       }
 
       Chapter front() @property {
-        int planID = (double(frontEdge) * totalChapters / totalDays).roundTo!int();
-        int progID = planID % chaptersInSection;
-        string chapterName = parent.decodeChapterID(progID);
-        return Chapter(chapterName, planID, progID);
+        int planID = (double(frontDay) * totalChapters / (length - 1)).roundTo!int();
+        int secID = (planID - 1) % chaptersInSection + 1;
+        string chapterName = parent.decodeChapterID(secID);
+        return Chapter(chapterName, planID, secID);
       }
 
       Chapter back() @property {
-        int planID = (double(backEdge) * totalChapters / totalDays).roundTo!int();
-        int progID = planID % chaptersInSection;
-        string chapterName = parent.decodeChapterID(progID);
-        return Chapter(chapterName, planID, progID);
+        int planID = (double(backDay) * totalChapters / (length - 1)).roundTo!int();
+        int secID = (planID - 1) % chaptersInSection + 1;
+        string chapterName = parent.decodeChapterID(secID);
+        return Chapter(chapterName, planID, secID);
       }
 
       void popFront() {
         if (empty)
           throw new RangeError("BibleReadingTracker.d");
 
-        frontEdge++;
+        frontDay++;
       }
 
       void popBack() {
         if (empty)
           throw new RangeError("BibleReadingTracker.d");
 
-        backEdge--;
+        backDay--;
       }
 
       bool empty() @property {
-        return (frontEdge > backEdge);
+        return (frontDay > backDay);
       }
 
       auto save() @property {
@@ -328,22 +326,15 @@ struct ReadingSection {
         return copy;
       }
 
-      Chapter opIndex(size_t edge) {
-        if (edge >= length)
+      Chapter opIndex(size_t currentDay) {
+        if (currentDay >= length)
           throw new RangeError("BibleReadingTracker.d");
-        else if (edge < 0)
+        if (currentDay < 0)
           throw new RangeError("BibleReadingTracker.d");
-
-        string chapterName;
-        int planID = (double(edge) * totalChapters / totalDays).roundTo!int();
-        int progID = (planID - 1) % chaptersInSection + 1;
-
-        if (planID == totalChapters)
-          chapterName = "The End";
-        else
-          chapterName = parent.decodeChapterID(progID % chaptersInSection);
-
-        return Chapter(chapterName, planID, progID);
+        int planID = (double(currentDay) * totalChapters / (length - 1)).roundTo!int();
+        int secID = (planID - 1) % chaptersInSection + 1;
+        string chapterName = parent.decodeChapterID(secID);
+        return Chapter(chapterName, planID, secID);
       }
 
       size_t opDollar() {
@@ -500,7 +491,7 @@ void main(string[] args) {
     dateRow.lastModDate.date = dateRow.startDate.date;
   }
 
-  daysElapsed += (todaysDate - dateRow.lastModDate).total!"days"();
+  daysElapsed += (todaysDate - dateRow.lastModDate).total!"days";
 
   ReadingSection[string] sectionsByName = getSectionsFromFile("readingSections.sdl");
 
@@ -530,28 +521,27 @@ auto updateRecordInit(LabelledDate lastModDate, LabelledDate startDate, Labelled
     lastModDate.date = startDate.date;
 
   // Initialize the day offsets we'll use to do our calculations
-  int totalDays = ((endDate - startDate).total!"days"() + 1).to!int();
+  int totalDays = ((endDate - startDate).total!"days" + 1).to!int();
   auto limitDays = limitDaysInit(totalDays);
 
-  int lastDay = ((lastModDate - startDate).total!"days"() + 1).to!int();
-  int today = ((todaysDate - startDate).total!"days"() + 1).to!int();
+  int lastDay = ((lastModDate - startDate).total!"days" + 1).to!int();
+  int today = ((todaysDate - startDate).total!"days" + 1).to!int();
   int tomorrow = today + 1;
-  
-  limitDays(&lastDay, &today, &tomorrow);
 
-  //writefln("totalDays: %s; lastDay: %s; today: %s; tomorrow: %s;", totalDays, lastDay, today, tomorrow);
+  limitDays(&lastDay, &today, &tomorrow);
 
   void updateRecord(ref SectionSpec record, ReadingSection section, int daysRead) {
     int multiplicity = record.progress.multiplicity;
     int daysBehind = record.behind.days;
-    auto chapterByDay = section.byDayEdge(totalDays, multiplicity);
-    //writeln(chapterByDay.length);
+    auto chapterByDay = section.byDay(totalDays, multiplicity);
     assert(isRandomAccessRange!(typeof(chapterByDay)));
 
     int lastCurDay = lastDay - daysBehind;
 
     if (reset) {
       lastCurDay = 0;
+      if (daysRead == 0)
+        daysRead = 1;
     } else if (lastCurDay + daysRead > totalDays) {
       daysRead = totalDays - lastCurDay;
     }
@@ -582,7 +572,7 @@ auto updateRecordInit(LabelledDate lastModDate, LabelledDate startDate, Labelled
     record.toRead = (nextDay >= tomorrow || today == totalDays) ?
       ToRead(chaptersToReadNext) :
       ToRead(chaptersToReadNext, chaptersToReadTomorrow, (chaptersBehind + chaptersToReadTomorrow));
-    record.progress = Progress(curChapter.progID, section.totalChapters, readThrough, multiplicity);
+    record.progress = Progress(curChapter.secID, section.totalChapters, readThrough, multiplicity);
   }
 
   return &updateRecord;
