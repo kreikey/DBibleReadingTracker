@@ -1,11 +1,11 @@
 Bible Reading 6.0
 --------------------------------------------------------------------------------------------------------------------------------------------
-Date: 3/8/19	Start: 1/1/19	End: 12/31/19
+Date: 3/13/19	Start: 1/1/19	End: 12/31/19
 --------------------------------------------------------------------------------------------------------------------------------------------
 section	bookmarked	target	behind chs|days	last read chs|days	to read ch..ch ch	progress ch/ch % r/m
-Old Testament	2 Samuel 9	2 Samuel 9	0|0	275|67	4	275/748   37%  1/2  
-New Testament	Acts 7	Acts 7	0|0	95|67	2	95/260    37%  1/2  
-Psalms	Psalms 84	Psalms 84	0|0	83|67	1	83/150    55%  1/3  
-Proverbs	Proverbs 7	Proverbs 7	0|0	68|67	1	6/31      19%  3/12 
+Old Testament	2 Samuel 21	1 Kings 5	8|2	12|3	4..4 12	287/748   38%  1/2  
+New Testament	Acts 15	Acts 15	0|0	8|5	1	103/260   40%  1/2  
+Psalms	Psalms 91	Psalms 90	-1|-1	7|6	1	90/150    60%  1/3  
+Proverbs	Proverbs 11	Proverbs 12	1|1	4|4	1..1 2	10/31     32%  3/12 
 --------------------------------------------------------------------------------------------------------------------------------------------
-Status: Table reset; completed last reading in 67 days
+Status: completed last reading in 5 days
