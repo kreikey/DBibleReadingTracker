@@ -20,10 +20,15 @@ struct BookRange {
   string lastBook;
 
   auto byID() {
-    int frontID = idByBook[firstBook];
-    int backID = idByBook[lastBook];
-
     struct Result {
+      int frontID;
+      int backID;
+
+      this(int _frontID, int _backID) {
+        frontID = _frontID;
+        backID = _backID;
+      }
+
       void popFront() {
         if (empty) {
           throw new RangeError("BibleReadingTracker.d");
@@ -41,14 +46,19 @@ struct BookRange {
       }
     }
 
-    return Result();
+    return Result(idByBook[firstBook], idByBook[lastBook]);
   }
 
   auto byBook() {
-    int frontID = idByBook[firstBook];
-    int backID = idByBook[lastBook];
-   
     struct Result {
+      int frontID;
+      int backID;
+
+      this(int _frontID, int _backID) {
+        frontID = _frontID;
+        backID = _backID;
+      }
+   
       void popFront() {
         if (empty) {
           throw new RangeError("BibleReadingTracker.d");
@@ -66,7 +76,7 @@ struct BookRange {
       }
     }
 
-    return Result();
+    return Result(idByBook[firstBook], idByBook[lastBook]);
   }
 }
 unittest {
@@ -272,9 +282,8 @@ struct ReadingSection {
   }
 
   auto byDayEdge(int totalDays, int multiplicity) {
-    ReadingSection* parent = &this;
-
     struct Result {
+      ReadingSection* parent;
       int chaptersInSection;
       int totalDays;
       int totalChapters;
@@ -282,7 +291,8 @@ struct ReadingSection {
       int backEdge;
       size_t length;
 
-      this(int _totalDays, int _multiplicity) {
+      this(int _totalDays, int _multiplicity, ReadingSection* _parent) {
+        parent = _parent;
         chaptersInSection = parent.totalChapters;
         totalChapters = chaptersInSection * _multiplicity;
         frontEdge = 0;
@@ -337,9 +347,7 @@ struct ReadingSection {
       }
 
       Chapter opIndex(size_t edge) {
-        if (edge >= length)
-          throw new RangeError("BibleReadingTracker.d");
-        else if (edge < 0)
+        if (edge >= length || edge < 0)
           throw new RangeError("BibleReadingTracker.d");
 
         string chapterName;
@@ -359,7 +367,7 @@ struct ReadingSection {
       }
     }
 
-    return Result(totalDays, multiplicity);
+    return Result(totalDays, multiplicity, &this);
   }
 }
 unittest {
