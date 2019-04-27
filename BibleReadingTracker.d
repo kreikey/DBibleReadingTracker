@@ -249,7 +249,7 @@ struct ReadingSection {
       .sum();
   } 
 
-  string decodeChapterID(int chapterID) {
+  string decodeChapterID(size_t chapterID) const {
     auto chaptersBook = bookIDs
       .map!(i => books[i].chapters)
       .cumulativeFold!((a, b) => a + b)
@@ -258,7 +258,7 @@ struct ReadingSection {
       .front;
 
     int bookID = chaptersBook[1];
-    int chapter = chapterID - chaptersBook[0] + books[bookID].chapters + 1;
+    int chapter = chapterID.to!int() - (chaptersBook[0] - books[bookID].chapters) + 1;
 
     return format!"%s %d"(books[bookID].name, chapter);
   }
@@ -281,11 +281,67 @@ struct ReadingSection {
       .sum() + chapter - 1;
   }
 
+  auto byChapter() {
+    struct Result {
+      size_t length;
+      int frontID;
+      int backID;
+      ReadingSection* parent;
+
+      this(ReadingSection* _parent) {
+        parent = _parent;
+        length = parent.totalChapters;
+        frontID = 0;
+        backID = (length - 1).to!int();
+      }
+
+      string front() @property {
+        return parent.decodeChapterID(frontID);
+      }
+
+      string back() @property {
+        return parent.decodeChapterID(backID);
+      }
+
+      void popFront() {
+        if (empty)
+          throw new RangeError("BibleReadingTracker.d");
+
+        frontID++;
+      }
+
+      void popBack() {
+        if (empty)
+          throw new RangeError("BibleReadingTracker.d");
+
+        backID--;
+      }
+
+      bool empty() @property {
+        return frontID > backID;
+      }
+
+      auto save() @property {
+        auto copy = this;
+        return copy;
+      }
+
+      string opIndex(size_t ID) inout {
+        if (ID < 0 || ID >= length) {
+          throw new RangeError("BibleReadingTracker.d");
+        }
+
+        return parent.decodeChapterID(cast(int)ID);
+      }
+    }
+
+    return Result(&this);
+  }
+
   auto byDayEdge(int totalDays, int multiplicity) {
-    ReadingSection* parent = &this;
+    const chapters = this.byChapter.cycle();
 
     struct Result {
-      ReadingSection* parent;
       int chaptersInSection;
       int totalDays;
       int totalChapters;
@@ -293,9 +349,8 @@ struct ReadingSection {
       int backEdge;
       size_t length;
 
-      this(int _totalDays, int _multiplicity, ReadingSection* _parent) {
-        parent = _parent;
-        chaptersInSection = parent.totalChapters;
+      this(int _totalDays, int _multiplicity, int _chaptersInSection) {
+        chaptersInSection = _chaptersInSection;
         totalChapters = chaptersInSection * _multiplicity;
         frontEdge = 0;
         backEdge = _totalDays;
@@ -310,7 +365,7 @@ struct ReadingSection {
         if (planID == totalChapters)
           chapterName = "The End";
         else
-          chapterName = parent.decodeChapterID(progID);
+          chapterName = chapters[planID];
        return Chapter(chapterName, planID, progID);
       }
 
@@ -321,7 +376,7 @@ struct ReadingSection {
         if (planID == totalChapters)
           chapterName = "The End";
         else
-          chapterName = parent.decodeChapterID(progID);
+          chapterName = chapters[planID];
         return Chapter(chapterName, planID, progID);
       }
 
@@ -361,7 +416,7 @@ struct ReadingSection {
         if (planID == totalChapters)
           chapterName = "The End";
         else
-          chapterName = parent.decodeChapterID(progID % chaptersInSection);
+          chapterName = chapters[planID];
 
         return Chapter(chapterName, planID, progID);
       }
@@ -371,7 +426,7 @@ struct ReadingSection {
       }
     }
 
-    return Result(totalDays, multiplicity, &this);
+    return Result(totalDays, multiplicity, this.totalChapters);
   }
 }
 unittest {
