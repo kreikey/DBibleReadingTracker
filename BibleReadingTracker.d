@@ -234,73 +234,44 @@ struct Chapter {
 }
 
 struct ReadingSection {
-  int[] bookIDs;
+  Tuple!(int, "bookID", int, "chapterID")[] bookChapterIDs;
   int totalChapters;
   
   this(BookRange[] bookRangeList) {
-    bookIDs = bookRangeList
+    bookChapterIDs = bookRangeList
       .map!(r => r
         .byID
-        .array())
+        .map!(b => iota!int(1, books[b].chapters + 1)
+          .map!(c => tuple!("bookID", "chapterID")(b, c))
+          .array())
+        .join())
       .join();
 
-    totalChapters = bookIDs
-      .map!(i => books[i].chapters)
-      .sum();
+    totalChapters = bookChapterIDs.length.to!int();
   } 
 
-  string decodeChapterID(size_t chapterID) const {
-    auto chaptersBook = bookIDs
-      .map!(i => books[i].chapters)
-      .cumulativeFold!((a, b) => a + b)
-      .zip(bookIDs)
-      .find!(a => a[0] > chapterID)
-      .front;
-
-    int bookID = chaptersBook[1];
-    int chapter = chapterID.to!int() - (chaptersBook[0] - books[bookID].chapters) + 1;
-
-    return format!"%s %d"(books[bookID].name, chapter);
-  }
-
-  int encodeChapterID(string bookAndChapter) {
-    string bookName;
-    int index;
-    int chapter;
-    long splitNdx;
-
-    splitNdx = (bookAndChapter.length - 1 - bookAndChapter.retro.indexOf(' '));
-    bookName = bookAndChapter[0 .. splitNdx];
-    chapter = bookAndChapter[splitNdx + 1 .. $].to!int();
-
-    int bookID = idByBook[bookName];
-
-    return bookIDs
-      .until(bookID)
-      .map!(i => books[i].chapters)
-      .sum() + chapter - 1;
-  }
-
   auto byChapter() {
+    const bc = this.bookChapterIDs;
+    size_t parentLen = this.totalChapters;
+
     struct Result {
       size_t length;
       int frontID;
       int backID;
       ReadingSection* parent;
 
-      this(ReadingSection* _parent) {
-        parent = _parent;
-        length = parent.totalChapters;
+      this(size_t _length) {
+        length = _length;
         frontID = 0;
         backID = (length - 1).to!int();
       }
 
       string front() @property {
-        return parent.decodeChapterID(frontID);
+        return format!"%s %s"(books[bc[frontID].bookID].name, bc[frontID].chapterID);
       }
 
       string back() @property {
-        return parent.decodeChapterID(backID);
+        return format!"%s %s"(books[bc[backID].bookID].name, bc[backID].chapterID);
       }
 
       void popFront() {
@@ -331,11 +302,11 @@ struct ReadingSection {
           throw new RangeError("BibleReadingTracker.d");
         }
 
-        return parent.decodeChapterID(cast(int)ID);
+        return format!"%s %s"(books[bc[ID].bookID].name, bc[ID].chapterID);
       }
     }
 
-    return Result(&this);
+    return Result(parentLen);
   }
 
   auto byDayEdge(int totalDays, int multiplicity) {
