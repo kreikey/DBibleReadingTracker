@@ -253,14 +253,14 @@ struct ReadingSection {
   
   this(BookRange[] bookRangeList) {
     foreach (bookRange; bookRangeList) {
-      foreach (book; bookRange.byID()) {
-        foreach (chapter; iota!int(1, book.chapters + 1)) {
-          bookChapterIDs ~= BookChapter(book, chapter);
+      foreach (bookID; bookRange.byID()) {
+        foreach (chapter; iota!int(1, books[bookID].chapters + 1)) {
+          bookChapterIDs ~= BookChapter(bookID, chapter);
         }
       }
     }
 
-    totalChapters = bookIDs.map!(a => chapters[a]).sum();
+    totalChapters = bookChapterIDs.length.to!int();
   } 
 
   auto byChapter() {
@@ -528,7 +528,7 @@ immutable int[string] idByBook;
 shared static this() {
   int[string] temp;
 
-  foreach (i, book; books) {
+  foreach (int i, book; books) {
     temp[book.name] = i;
   }
 
