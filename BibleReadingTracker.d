@@ -234,8 +234,7 @@ struct Chapter {
 }
 
 struct ReadingSection {
-  alias BookChapter = Tuple!(int, "bookID", int, "chapterID");
-  BookChapter[] bookChapterIDs;
+  Tuple!(int, "bookID", int, "chapterID")[] bookChapterIDs;
   int totalChapters;
   
   this(BookRange[] bookRangeList) {
@@ -243,7 +242,7 @@ struct ReadingSection {
       .map!(r => r
         .byID
         .map!(b => iota!int(1, books[b].chapters + 1)
-          .map!(c => BookChapter(b, c))
+          .map!(c => tuple!("bookID", "chapterID")(b, c))
           .array())
         .join())
       .join();
@@ -328,6 +327,51 @@ struct ReadingSection {
         backEdge = _totalDays;
         totalDays = _totalDays;
         length = totalDays + 1;
+      }
+
+      Chapter front() @property {
+        int planID = (double(frontEdge) * totalChapters / totalDays).roundTo!int();
+        int progID = (planID - 1) % chaptersInSection + 1;
+        string chapterName;
+        if (planID == totalChapters)
+          chapterName = "The End";
+        else
+          chapterName = chapters[planID];
+       return Chapter(chapterName, planID, progID);
+      }
+
+      Chapter back() @property {
+        int planID = (double(backEdge) * totalChapters / totalDays).roundTo!int();
+        int progID = (planID - 1) % chaptersInSection + 1;
+        string chapterName;
+        if (planID == totalChapters)
+          chapterName = "The End";
+        else
+          chapterName = chapters[planID];
+        return Chapter(chapterName, planID, progID);
+      }
+
+      void popFront() {
+        if (empty)
+          throw new RangeError("BibleReadingTracker.d");
+
+        frontEdge++;
+      }
+
+      void popBack() {
+        if (empty)
+          throw new RangeError("BibleReadingTracker.d");
+
+        backEdge--;
+      }
+
+      bool empty() @property {
+        return (frontEdge > backEdge);
+      }
+
+      auto save() @property {
+        auto copy = this;
+        return copy;
       }
 
       Chapter opIndex(size_t edge) {
@@ -447,8 +491,10 @@ static Book[] books = [
 immutable int[string] idByBook;
 
 static this() {
-  auto temp = iota!int(0, books.length.to!int())
-    .map!(i => tuple(books[i].name, i))
+  auto temp = books
+    .map!(b => b.name)
+    .enumerate!(int)
+    .map!(reverse)
     .assocArray();
   temp.rehash();
   idByBook = assumeUnique(temp);
@@ -457,7 +503,7 @@ static this() {
 
 void main(string[] args) {
   // Copy and transform command-line arguments
-  int[] daysRead = args[1 .. $].map!(to!int).array();
+  int[] argsCopy = args[1 .. $].map!(to!int).array();
 
   // Read in the chunk of text
   string[] text = stdin.byLineCopy.array();
@@ -477,12 +523,26 @@ void main(string[] args) {
   string[] sectionHeader = sectionRecordsRange.header;
 
   // Turn ranges into arrays
-  SectionSpec[] sectionRecords = sectionRecordsRange.filter!(isActive).array();
+  SectionSpec[] sectionRecords = sectionRecordsRange.array();
 
-  if (daysRead.length == 0)
-    daysRead ~= 1;
-  if (daysRead.length < sectionRecords.length)
-    daysRead ~= daysRead[$ - 1].repeat(sectionRecords.length - daysRead.length).array();
+  // Fix up number of daysRead arguments
+  int[] daysRead;
+  daysRead.length = sectionRecords.length;
+  int ndx = 0;
+
+  int activeCount = sectionRecords.map!(isActive).sum();
+
+  if (argsCopy.length == 0)
+    daysRead.fill(1);
+  else if (argsCopy.length == 1)
+    daysRead.fill(argsCopy[0]);
+  else {
+    if (argsCopy.length < activeCount)
+      argsCopy ~= argsCopy[$ - 1].repeat(activeCount - argsCopy.length).array();
+
+    lockstep(sectionRecords, daysRead)
+      .each!((r, ref c) => c = r.isActive() ? argsCopy[ndx++] : 0);
+  }
 
   // Get today's date
   LabelledDate todaysDate = Clock.currTime.LabelledDate(dateRow.lastModDate.label);
@@ -530,16 +590,22 @@ auto updateRecordInit(LabelledDate lastModDate, LabelledDate startDate, Labelled
 
   // Initialize the day offsets we'll use to do our calculations
   int totalDays = ((endDate - startDate).total!"days"() + 1).to!int();
-  auto limitDay = limitDayInit(totalDays);
+  auto limitDays = limitDaysInit(totalDays);
 
-  int lastDay = limitDay(((lastModDate - startDate).total!"days"() + 1).to!int());
-  int today = limitDay(((todaysDate - startDate).total!"days"() + 1).to!int());
-  int tomorrow = limitDay(today + 1);
+  int lastDay = ((lastModDate - startDate).total!"days"() + 1).to!int();
+  int today = ((todaysDate - startDate).total!"days"() + 1).to!int();
+  int tomorrow = today + 1;
   
+  limitDays(&lastDay, &today, &tomorrow);
+
+  //writefln("totalDays: %s; lastDay: %s; today: %s; tomorrow: %s;", totalDays, lastDay, today, tomorrow);
+
   void updateRecord(ref SectionSpec record, ReadingSection section, int daysRead) {
     int multiplicity = record.progress.multiplicity;
     int daysBehind = record.behind.days;
     auto chapterByDay = section.byDayEdge(totalDays, multiplicity);
+    //writeln(chapterByDay.length);
+    assert(isRandomAccessRange!(typeof(chapterByDay)));
 
     int lastCurDay = lastDay - daysBehind;
 
@@ -549,8 +615,11 @@ auto updateRecordInit(LabelledDate lastModDate, LabelledDate startDate, Labelled
       daysRead = totalDays - lastCurDay;
     }
 
-    int currentDay = limitDay((lastCurDay + daysRead));
-    int nextDay = limitDay((currentDay + 1)); // handle chaptersToRead issue here by limiting nextDay depending on totalDays
+    int currentDay = lastCurDay + daysRead;
+    limitDays(&currentDay);
+
+    int nextDay = currentDay + 1; // handle chaptersToRead issue here by limiting nextDay depending on totalDays
+    limitDays(&nextDay);
 
     Chapter lastCurChapter = chapterByDay[lastCurDay];
     Chapter curChapter = chapterByDay[currentDay];
@@ -580,7 +649,8 @@ auto updateRecordInit(LabelledDate lastModDate, LabelledDate startDate, Labelled
 
 ReadingSection[string] getSectionsFromFile(string filename) {
   auto sections = parseFile(filename).tags["section"];
-  return sections.map!(s => tuple(s.expectValue!string, s.tags["bookrange"]
+  return sections.map!(s => s.expectValue!string)
+    .zip(sections.map!(s => s.tags["bookrange"]
       .map!(r => BookRange(r.expectAttribute!string("first"), r.expectAttribute!string("last")))
       .array
       .ReadingSection()))
@@ -594,10 +664,10 @@ bool isActive(SectionSpec record) {
   return (chaptersRead < totalChapters);
 }
 
-auto limitDayInit(int totalDays) {
-  int limitDay(int day) {
-    return day > totalDays ? totalDays : day;
+auto limitDaysInit(int totalDays) {
+  void limitDays(int*[] days ...) {
+    days.each!(d => *d = *d > totalDays ? totalDays : *d);
   }
-  return &limitDay;
+  return &limitDays;
 }
 
