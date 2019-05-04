@@ -279,11 +279,11 @@ struct ReadingSection {
       }
 
       string front() @property {
-        return format!"%s %s"(books[bc[frontID].bookID].name, bc[frontID].chapterID);
+        return format!"%s %s"(bc[frontID].book.name, bc[frontID].chapterID);
       }
 
       string back() @property {
-        return format!"%s %s"(books[bc[backID].bookID].name, bc[backID].chapterID);
+        return format!"%s %s"(bc[backID].book.name, bc[backID].chapterID);
       }
 
       void popFront() {
@@ -315,7 +315,7 @@ struct ReadingSection {
         if (idx >= length)
           throw new RangeError("BibleReadingTracker.d");
 
-        return format!"%s %s"(books[bc[idx + frontID].bookID].name, bc[idx + frontID].chapterID);
+        return format!"%s %s"(bc[idx + frontID].book.name, bc[idx + frontID].chapterID);
       }
 
       size_t opDollar() {
