@@ -251,7 +251,7 @@ struct ReadingSection {
   BookChapter[] bookChapterIDs;
   int totalChapters;
   
-  this(BookRange[] bookRangeList)
+  this(BookRange[] bookRangeList) {
     foreach (bookRange; bookRangeList)
       foreach (bookID; bookRange.byID())
         foreach (chapter; iota!int(1, books[bookID].chapters + 1))
