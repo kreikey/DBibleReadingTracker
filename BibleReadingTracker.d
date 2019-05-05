@@ -251,14 +251,11 @@ struct ReadingSection {
   BookChapter[] bookChapterIDs;
   int totalChapters;
   
-  this(BookRange[] bookRangeList) {
-    foreach (bookRange; bookRangeList) {
-      foreach (bookID; bookRange.byID()) {
-        foreach (chapter; iota!int(1, books[bookID].chapters + 1)) {
+  this(BookRange[] bookRangeList)
+    foreach (bookRange; bookRangeList)
+      foreach (bookID; bookRange.byID())
+        foreach (chapter; iota!int(1, books[bookID].chapters + 1))
           bookChapterIDs ~= BookChapter(bookID, chapter);
-        }
-      }
-    }
 
     totalChapters = bookChapterIDs.length.to!int();
   } 
@@ -528,9 +525,8 @@ immutable int[string] idByBook;
 shared static this() {
   int[string] temp;
 
-  foreach (int i, book; books) {
+  foreach (int i, book; books)
     temp[book.name] = i;
-  }
 
   temp.rehash();
   idByBook = assumeUnique(temp);
