@@ -248,6 +248,7 @@ struct Chapter {
 
 struct ReadingSection {
   alias BookChapter = Tuple!(int, "bookID", int, "chapterID");
+  alias ChaptersType = typeof(this.byChapter.cycle());
   BookChapter[] bookChapterIDs;
   int totalChapters;
   
@@ -264,66 +265,66 @@ struct ReadingSection {
     totalChapters = bookChapterIDs.length.to!int();
   } 
 
-  auto byChapter() {
-    static struct Result {
-      size_t length;
-      int frontID;
-      int backID;
-      BookChapter[] bc;
+  struct ByChapterResult {
+    size_t length;
+    int frontID;
+    int backID;
+    BookChapter[] bc;
 
-      this(size_t _length, BookChapter[] _bc) {
-        length = _length;
-        frontID = 0;
-        backID = (length - 1).to!int();
-        bc = _bc;
-      }
+    this(size_t _length, BookChapter[] _bc) {
+      length = _length;
+      frontID = 0;
+      backID = (length - 1).to!int();
+      bc = _bc;
+    }
 
-      string front() @property {
-        return format!"%s %s"(books[bc[frontID].bookID].name, bc[frontID].chapterID);
-      }
+    string front() @property {
+      return format!"%s %s"(books[bc[frontID].bookID].name, bc[frontID].chapterID);
+    }
 
-      string back() @property {
-        return format!"%s %s"(books[bc[backID].bookID].name, bc[backID].chapterID);
-      }
+    string back() @property {
+      return format!"%s %s"(books[bc[backID].bookID].name, bc[backID].chapterID);
+    }
 
-      void popFront() {
-        if (empty)
-          throw new RangeError("BibleReadingTracker.d");
+    void popFront() {
+      if (empty)
+        throw new RangeError("BibleReadingTracker.d");
 
         frontID++;
         length--;
-      }
-
-      void popBack() {
-        if (empty)
-          throw new RangeError("BibleReadingTracker.d");
-
-        backID--;
-        length--;
-      }
-
-      bool empty() @property {
-        return frontID > backID;
-      }
-
-      auto save() @property {
-        auto copy = this;
-        return copy;
-      }
-
-      string opIndex(size_t idx) inout {
-        if (idx >= length)
-          throw new RangeError("BibleReadingTracker.d");
-
-        return format!"%s %s"(books[bc[idx + frontID].bookID].name, bc[idx + frontID].chapterID);
-      }
-
-      size_t opDollar() {
-        return length;
-      }
     }
 
-    return Result(this.totalChapters, this.bookChapterIDs);
+    void popBack() {
+      if (empty)
+        throw new RangeError("BibleReadingTracker.d");
+
+      backID--;
+      length--;
+    }
+
+    bool empty() @property {
+      return frontID > backID;
+    }
+
+    auto save() @property {
+      auto copy = this;
+      return copy;
+    }
+
+    string opIndex(size_t idx) inout {
+      if (idx >= length)
+        throw new RangeError("BibleReadingTracker.d");
+
+      return format!"%s %s"(books[bc[idx + frontID].bookID].name, bc[idx + frontID].chapterID);
+    }
+
+    size_t opDollar() {
+      return length;
+    }
+  }
+
+  auto byChapter() {
+    return ByChapterResult(this.totalChapters, this.bookChapterIDs);
   }
 
   struct ByDayEdgeResult {
@@ -333,14 +334,16 @@ struct ReadingSection {
     int frontEdge;
     int backEdge;
     size_t length;
+    const ChaptersType chapters;
 
-    this(int _totalDays, int _multiplicity, int _chaptersInSection) {
+    this(int _totalDays, int _multiplicity, int _chaptersInSection, const ChaptersType _chapters) {
       chaptersInSection = _chaptersInSection;
       totalChapters = chaptersInSection * _multiplicity;
       frontEdge = 0;
       backEdge = _totalDays;
       totalDays = _totalDays;
       length = totalDays + 1;
+      chapters = _chapters;
     }
 
     Chapter front() @property {
@@ -416,7 +419,7 @@ struct ReadingSection {
   }
 
   auto byDayEdge(int totalDays, int multiplicity) {
-    return byDayEdgeResult(totalDays, multiplicity, this.byChapter.cycle());
+    return ByDayEdgeResult(totalDays, multiplicity, this.totalChapters, this.byChapter.cycle());
   }
 }
 unittest {
