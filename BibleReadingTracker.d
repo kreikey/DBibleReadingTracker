@@ -257,7 +257,6 @@ struct ReadingSection {
       size_t length;
       int frontID;
       int backID;
-      ReadingSection* parent;
 
       this(size_t _length) {
         length = _length;
