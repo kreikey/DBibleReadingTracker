@@ -277,6 +277,7 @@ struct ReadingSection {
           throw new RangeError("BibleReadingTracker.d");
 
         frontID++;
+        length--;
       }
 
       void popBack() {
@@ -284,6 +285,7 @@ struct ReadingSection {
           throw new RangeError("BibleReadingTracker.d");
 
         backID--;
+        length--;
       }
 
       bool empty() @property {
@@ -295,11 +297,15 @@ struct ReadingSection {
         return copy;
       }
 
-      string opIndex(size_t ID) inout {
-        if (ID < 0 || ID >= length)
+      string opIndex(size_t idx) inout {
+        if (idx >= length)
           throw new RangeError("BibleReadingTracker.d");
 
-        return format!"%s %s"(books[bc[ID].bookID].name, bc[ID].chapterID);
+        return format!"%s %s"(books[bc[idx + frontID].bookID].name, bc[idx + frontID].chapterID);
+      }
+
+      size_t opDollar() {
+        return length;
       }
     }
 
@@ -358,12 +364,19 @@ unittest {
   auto bd = s.byDayEdge(365, 1);
   auto c = bd[$-1];
   assert(c.name == "The End");
-  auto e = bd.back;
-  assert(e.name == "The End");
-  auto f = bd.front;
-  assert(f.name == "Genesis 1");
   auto g = bd[0];
   assert(g.name == "Genesis 1");
+  auto bc = s.byChapter();
+  assert(bc[0] == "Genesis 1");
+  assert(bc.front == "Genesis 1");
+  assert(bc[$-1] == "Revelation 22");
+  assert(bc.back == "Revelation 22");
+  bc.popFront();
+  bc.popBack();
+  assert(bc[0] == "Genesis 2");
+  assert(bc.front == "Genesis 2");
+  assert(bc[$-1] == "Revelation 21");
+  assert(bc.back == "Revelation 21");
 }
 
 struct Book {
