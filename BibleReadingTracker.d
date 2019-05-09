@@ -335,8 +335,6 @@ struct ReadingSection {
       Chapter opIndex(size_t edge) {
         if (edge >= length)
           throw new RangeError("BibleReadingTracker.d");
-        else if (edge < 0)
-          throw new RangeError("BibleReadingTracker.d");
 
         string chapterName;
         int planID = (double(edge) * totalChapters / totalDays).roundTo!int();
