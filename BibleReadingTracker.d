@@ -332,12 +332,63 @@ struct ReadingSection {
         length = totalDays + 1;
       }
 
-      Chapter opIndex(size_t edge) {
-        if (edge >= length)
+      Chapter front() @property {
+        int planID = (double(frontEdge) * totalChapters / totalDays).roundTo!int();
+        int progID = (planID - 1) % chaptersInSection + 1;
+        string chapterName;
+
+        if (planID == totalChapters)
+          chapterName = "The End";
+        else
+          chapterName = chapters[planID];
+
+        return Chapter(chapterName, planID, progID);
+      }
+
+      Chapter back() @property {
+        int planID = (double(backEdge) * totalChapters / totalDays).roundTo!int();
+        int progID = (planID - 1) % chaptersInSection + 1;
+        string chapterName;
+
+        if (planID == totalChapters)
+          chapterName = "The End";
+        else
+          chapterName = chapters[planID];
+
+        return Chapter(chapterName, planID, progID);
+      }
+
+       void popFront() {
+        if (empty)
+          throw new RangeError("BibleReadingTracker.d");
+
+        frontEdge++;
+        length--;
+      }
+
+      void popBack() {
+        if (empty)
+          throw new RangeError("BibleReadingTracker.d");
+
+        backEdge--;
+        length--;
+      }
+
+      bool empty() @property {
+        return frontEdge > backEdge;
+      }
+
+      auto save() @property {
+        auto copy = this;
+        return copy;
+      }
+
+      Chapter opIndex(size_t idx) {
+        if (idx >= length)
           throw new RangeError("BibleReadingTracker.d");
 
         string chapterName;
-        int planID = (double(edge) * totalChapters / totalDays).roundTo!int();
+        int planID = (double(idx + frontEdge) * totalChapters / totalDays).roundTo!int();
         int progID = (planID - 1) % chaptersInSection + 1;
 
         if (planID == totalChapters)
@@ -360,11 +411,17 @@ unittest {
   auto r = BookRange("Genesis", "Revelation");
   auto s = ReadingSection([r]);
   auto bd = s.byDayEdge(365, 1);
-  auto c = bd[$-1];
-  assert(c.name == "The End");
-  auto g = bd[0];
-  assert(g.name == "Genesis 1");
+  assert(isRandomAccessRange!(typeof(bd)));
+  assert(bd[$-1].name == "The End");
+  assert(bd[0].name == "Genesis 1");
+  bd.popFront();
+  bd.popBack();
+  assert(bd.front.name == "Genesis 4");
+  assert(bd.back.name == "Revelation 20");
+  assert(bd[0].name == "Genesis 4");
+  assert(bd[$-1].name == "Revelation 20");
   auto bc = s.byChapter();
+  assert(isRandomAccessRange!(typeof(bc)));
   assert(bc[0] == "Genesis 1");
   assert(bc.front == "Genesis 1");
   assert(bc[$-1] == "Revelation 22");
