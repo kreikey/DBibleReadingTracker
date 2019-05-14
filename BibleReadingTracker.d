@@ -543,12 +543,13 @@ void main(string[] args) {
   string[] sectionHeader = sectionRecordsRange.header;
 
   // Turn ranges into arrays
-  SectionSpec[] sectionRecords = sectionRecordsRange.filter!(isActive).array();
+  SectionSpec[] sectionRecords = sectionRecordsRange.array();
+  ulong activeCount = sectionRecords.filter!(isActive).count();
 
   if (daysRead.length == 0)
     daysRead ~= 1;
-  if (daysRead.length < sectionRecords.length)
-    daysRead ~= daysRead[$ - 1].repeat(sectionRecords.length - daysRead.length).array();
+  if (daysRead.length < activeCount)
+    daysRead ~= daysRead[$ - 1].repeat(activeCount - daysRead.length).array();
 
   // Get today's date
   LabelledDate todaysDate = Clock.currTime.LabelledDate(dateRow.lastModDate.label);
@@ -570,7 +571,7 @@ void main(string[] args) {
   ReadingSection[string] sectionsByName = getSectionsFromFile("readingSections.sdl");
 
   // Update table with days read
-  lockstep(sectionRecords, sectionRecords.map!(r => sectionsByName[r.section]), daysRead)
+  lockstep(sectionRecords.filter!(isActive)(), sectionRecords.map!(r => sectionsByName[r.section]), daysRead)
     .each!(updateRecord);
 
   // Update last-modified date
