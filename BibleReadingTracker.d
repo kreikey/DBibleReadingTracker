@@ -14,6 +14,7 @@ import std.typecons;
 import std.format;
 import std.exception : assumeUnique;
 import std.meta;
+import std.regex;
 
 struct BookRange {
   string firstBook;
@@ -109,14 +110,15 @@ struct ToRead {
   this(string input) {
     int _tomorrow;
     int _total;
+    auto pattern = ctRegex!(`([\d]+)(\.\.([\d]+) ([\d]+))?`);
+    auto result = input.matchFirst(pattern);
 
-    if (input.canFind(' ')) {
-      input.formattedRead!"%d..%d %d"(next, _tomorrow, _total);
-      tomorrow = _tomorrow;
-      total = _total;
-    } else {
-      next = input.to!int();
-    }
+    next = result[1].to!int();
+
+    if (result[3] != "")
+      tomorrow = result[3].to!int();
+    if (result[4] != "")
+      total = result[4].to!int();
   }
 
   this(int _next) {
