@@ -574,7 +574,7 @@ void main(string[] args) {
   // Update table with days read
   lockstep(sectionRecords.filter!(isActive)(), sectionRecords.map!(r => sectionsByName[r.section]), daysRead)
     .each!(updateRecord);
-  lockstep(sectionRecords.filter!(not!isActive)(), sectionRecords.map!(r => sectionsByName[r.section]), 0.repeat(sectionRecords.length - activeCount))
+  lockstep(sectionRecords.filter!(not!isActive)(), sectionRecords.map!(r => sectionsByName[r.section]), (0).repeat(sectionRecords.length - activeCount))
     .each!(updateRecord);
 
   // Update last-modified date
