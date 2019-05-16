@@ -15,6 +15,7 @@ import std.format;
 import std.exception : assumeUnique;
 import std.meta;
 import std.regex;
+import std.functional;
 
 struct BookRange {
   string firstBook;
@@ -572,6 +573,8 @@ void main(string[] args) {
 
   // Update table with days read
   lockstep(sectionRecords.filter!(isActive)(), sectionRecords.map!(r => sectionsByName[r.section]), daysRead)
+    .each!(updateRecord);
+  lockstep(sectionRecords.filter!(not!isActive)(), sectionRecords.map!(r => sectionsByName[r.section]), 0.repeat(sectionRecords.length - activeCount))
     .each!(updateRecord);
 
   // Update last-modified date
