@@ -82,8 +82,8 @@ struct BookRange {
 }
 unittest {
   auto r = BookRange("Genesis", "Revelation");
-  assert(isInputRange!(typeof(r.byID())));
-  assert(isInputRange!(typeof(r.byBook())));
+  assert(isInputRange!typeof(r.byID())());
+  assert(isInputRange!typeof(r.byBook())());
 }
 
 struct ChaptersDays {
@@ -111,7 +111,7 @@ struct ToRead {
   this(string input) {
     int _tomorrow;
     int _total;
-    auto pattern = ctRegex!(`([\d]+)(\.\.([\d]+) ([\d]+))?`);
+    auto pattern = ctRegex!`([\d]+)(\.\.([\d]+) ([\d]+))?`;
     auto result = input.matchFirst(pattern);
 
     next = result[1].to!int();
@@ -173,8 +173,14 @@ struct SectionSpec {
   ChaptersDays lastRead;
   ToRead toRead;
   Progress progress;
+
   string toString() {
-    return format("%s\t%s\t%s\t%s\t%s\t%s\t%s", this.tupleof);
+    string result = format("%s", this.tupleof[0]);
+    foreach (elem; this.tupleof[1 .. $]) {
+      result ~= format("\t%s", elem);
+    }
+
+    return result;
   }
 }
 
@@ -224,7 +230,12 @@ struct DateRowSpec {
   LabelledDate endDate;
 
   string toString() {
-    return format!"%s\t%s\t%s"(this.tupleof);
+    string result = format("%s", this.tupleof[0]);
+    foreach (elem; this.tupleof[1 .. $]) {
+      result ~= format("\t%s", elem);
+    }
+
+    return result;
   }
 }
 
@@ -414,7 +425,7 @@ unittest {
   auto r = BookRange("Genesis", "Revelation");
   auto s = ReadingSection([r]);
   auto bd = s.byDayEdge(365, 1);
-  assert(isRandomAccessRange!(typeof(bd)));
+  assert(isRandomAccessRange!typeof(bd)());
   assert(bd[$-1].name == "The End");
   assert(bd[0].name == "Genesis 1");
   bd.popFront();
@@ -424,7 +435,7 @@ unittest {
   assert(bd[0].name == "Genesis 4");
   assert(bd[$-1].name == "Revelation 20");
   auto bc = s.byChapter();
-  assert(isRandomAccessRange!(typeof(bc)));
+  assert(isRandomAccessRange!typeof(bc)());
   assert(bc[0] == "Genesis 1");
   assert(bc.front == "Genesis 1");
   assert(bc[$-1] == "Revelation 22");
@@ -545,7 +556,7 @@ void main(string[] args) {
 
   // Turn ranges into arrays
   SectionSpec[] sectionRecords = sectionRecordsRange.array();
-  ulong activeCount = sectionRecords.filter!(isActive).count();
+  ulong activeCount = sectionRecords.filter!isActive.count();
 
   if (daysRead.length == 0)
     daysRead ~= 1;
@@ -572,10 +583,10 @@ void main(string[] args) {
   ReadingSection[string] sectionsByName = getSectionsFromFile("readingSections.sdl");
 
   // Update table with days read
-  lockstep(sectionRecords.filter!(isActive)(), sectionRecords.map!(r => sectionsByName[r.section]), daysRead)
-    .each!(updateRecord);
-  lockstep(sectionRecords.filter!(not!isActive)(), sectionRecords.map!(r => sectionsByName[r.section]), (0).repeat(sectionRecords.length - activeCount))
-    .each!(updateRecord);
+  lockstep(sectionRecords.filter!isActive(), sectionRecords.map!(r => sectionsByName[r.section])(), daysRead)
+    .each!updateRecord();
+  lockstep(sectionRecords.filter!(not!isActive)(), sectionRecords.map!(r => sectionsByName[r.section])(), (0).repeat(sectionRecords.length - activeCount))
+    .each!updateRecord();
 
   // Update last-modified date
   dateRow.lastModDate.date = todaysDate.date;
@@ -586,7 +597,7 @@ void main(string[] args) {
   writeln(dateRow);
   writeln(mainSeparator);
   writeln(sectionHeader.join("\t"));
-  sectionRecords.each!(writeln);
+  sectionRecords.each!writeln();
   writeln(mainSeparator);
   writefln!"Status: %scompleted last reading in %s days"(tableResetMsg, daysElapsed);
 }
