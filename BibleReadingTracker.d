@@ -22,7 +22,7 @@ struct BookRange {
   string lastBook;
 
   auto byID() {
-    struct Result {
+    static struct Result {
       int frontID;
       int backID;
 
@@ -51,7 +51,7 @@ struct BookRange {
   }
 
   auto byBook() {
-    struct Result {
+    static struct Result {
       int frontID;
       int backID;
 
@@ -265,17 +265,17 @@ struct ReadingSection {
   } 
 
   auto byChapter() {
-    const bc = this.bookChapterIDs;
-
-    struct Result {
+    static struct Result {
       size_t length;
       int frontID;
       int backID;
+      BookChapter[] bc;
 
-      this(size_t _length) {
+      this(size_t _length, BookChapter[] _bc) {
         length = _length;
         frontID = 0;
         backID = (length - 1).to!int();
+        bc = _bc;
       }
 
       string front() @property {
@@ -323,27 +323,29 @@ struct ReadingSection {
       }
     }
 
-    return Result(this.totalChapters);
+    return Result(this.totalChapters, this.bookChapterIDs);
   }
 
   auto byDayEdge(int totalDays, int multiplicity) {
-    const chapters = this.byChapter.cycle();
+    alias ChaptersType = typeof(this.byChapter.cycle());
 
-    struct Result {
+    static struct Result {
       int chaptersInSection;
       int totalDays;
       int totalChapters;
       int frontEdge;
       int backEdge;
       size_t length;
+      ChaptersType chapters;
 
-      this(int _totalDays, int _multiplicity, int _chaptersInSection) {
+      this(int _totalDays, int _multiplicity, int _chaptersInSection, ChaptersType _chapters) {
         chaptersInSection = _chaptersInSection;
         totalChapters = chaptersInSection * _multiplicity;
         frontEdge = 0;
         backEdge = _totalDays;
         totalDays = _totalDays;
         length = totalDays + 1;
+        chapters = _chapters;
       }
 
       Chapter front() @property {
@@ -418,7 +420,7 @@ struct ReadingSection {
       }
     }
 
-    return Result(totalDays, multiplicity, this.totalChapters);
+    return Result(totalDays, multiplicity, this.totalChapters, this.byChapter.cycle());
   }
 }
 unittest {
@@ -524,7 +526,7 @@ static Book[] books = [
 
 immutable int[string] idByBook;
 
-static this() {
+shared static this() {
   auto temp = iota!int(0, books.length.to!int())
     .map!(i => tuple(books[i].name, i))
     .assocArray();
