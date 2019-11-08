@@ -323,7 +323,7 @@ struct ReadingSection {
       }
     }
 
-    return Result(this.totalChapters, this.bookChapterIDs);
+    return Result(this.totalChapters, this.bookChapters);
   }
 
   auto byDayEdge(int totalDays, int multiplicity) {
