@@ -528,7 +528,7 @@ immutable int[string] idByBook;
 
 shared static this() {
   auto temp = iota!int(0, books.length.to!int())
-    .map!(i => tuple(books[i].name, i))
+    .map!(i => books[i].name, i => i)
     .assocArray();
   temp.rehash();
   idByBook = assumeUnique(temp);
