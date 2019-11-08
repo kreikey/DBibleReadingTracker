@@ -105,36 +105,48 @@ struct ChaptersDays {
 
 struct ToRead {
   private int next;
-  private Nullable!int tomorrow;
-  private Nullable!int total;
+  private int* tomorrow;
+  private int* total;
 
   this(string input) {
-    int _tomorrow;
-    int _total;
     auto pattern = ctRegex!`([\d]+)(\.\.([\d]+) ([\d]+))?`;
     auto result = input.matchFirst(pattern);
 
     next = result[1].to!int();
 
-    if (result[3] != "")
-      tomorrow = result[3].to!int();
-    if (result[4] != "")
-      total = result[4].to!int();
+    if (result[3] != "") {
+      tomorrow = new int;
+      *tomorrow = result[3].to!int();
+    } if (result[4] != "") {
+      total = new int;
+      *total = result[4].to!int();
+    }
   }
 
   this(int _next) {
     next = _next;
   }
 
+  this(this) {
+    tomorrow = new int;
+    *tomorrow = *tomorrow;
+    total = new int;
+    *total = *total;
+  }
+
   this(AliasSeq!(int, int, int) args) {
-    this.tupleof = args;
+    next = args[0];
+    tomorrow = new int;
+    *tomorrow = (args[1]);
+    total = new int;
+    *total = (args[2]);
   }
   
   string toString() {
-    if (tomorrow.isNull || total.isNull)
+    if (tomorrow != null || total != null)
       return next.to!string();
     else
-      return format!"%d..%d %d"(next, tomorrow.get, total.get);
+      return format!"%d..%d %d"(next, *tomorrow, *total);
   }
 }
 
