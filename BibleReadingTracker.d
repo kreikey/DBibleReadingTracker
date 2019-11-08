@@ -525,8 +525,8 @@ immutable int[string] idByBook;
 shared static this() {
   int[string] temp;
 
-  foreach (int i, book; books)
-    temp[book.name] = i;
+  foreach (i, book; books)
+    temp[book.name] = cast(int)i;
 
   temp.rehash();
   idByBook = assumeUnique(temp);
@@ -585,7 +585,7 @@ void main(string[] args) {
   // Update table with days read
   foreach(ref record, daysRead; lockstep(sectionRecords.filter!isActive(), daysRead))
     updateRecord(record, sectionsByName[record.section], daysRead);
-  foreach(ref record, zeros; lockstep(sectionRecords.filter!(not!isActive), (0).repeat(sectionRecords.length - activeCount))) {
+  foreach(ref record, zeros; lockstep(sectionRecords.filter!(not!isActive), (0).repeat(sectionRecords.length - activeCount)))
     updateRecord(record, sectionsByName[record.section], zeros);
 
   // Update last-modified date
