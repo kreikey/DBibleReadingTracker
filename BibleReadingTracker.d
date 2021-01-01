@@ -247,33 +247,33 @@ struct Chapter {
 }
 
 struct ReadingSection {
-  Book[] books;
+  Book[] localBooks;
   int totalChapters;
   
   this(BookRange[] bookRangeList) {
-    books = bookRangeList
+    localBooks = bookRangeList
       .map!(r => r
         .byBook
         .array())
       .join();
 
-    totalChapters = books
+    totalChapters = localBooks
       .map!(b => b.chapters)
       .sum();
   } 
 
   string decodeChapterID(size_t chapterID) const {
-    auto chaptersBook = bookIDs
-      .map!(i => books[i].chapters)
+    auto chaptersBook = localBooks
+      .map!(b => b.chapters)
       .cumulativeFold!((a, b) => a + b)
-      .zip(bookIDs)
+      .zip(localBooks)
       .find!(a => a[0] > chapterID)
       .front;
 
-    int bookID = chaptersBook[1];
-    int chapter = chapterID.to!int() - (chaptersBook[0] - books[bookID].chapters) + 1;
+    Book book = chaptersBook[1];
+    int chapter = chapterID.to!int() - (chaptersBook[0] - book.chapters) + 1;
 
-    return format!"%s %d"(books[bookID].name, chapter);
+    return format!"%s %d"(book.name, chapter);
   }
 
   int encodeChapterID(string bookAndChapter) {
@@ -286,11 +286,11 @@ struct ReadingSection {
     bookName = bookAndChapter[0 .. splitNdx];
     chapter = bookAndChapter[splitNdx + 1 .. $].to!int();
 
-    int bookID = idByBook[bookName];
+    Book book = books[idByBook[bookName]];
 
-    return bookIDs
-      .until(bookID)
-      .map!(i => books[i].chapters)
+    return localBooks
+      .until(book)
+      .map!(i => book.chapters)
       .sum() + chapter - 1;
   }
 
