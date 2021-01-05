@@ -16,6 +16,7 @@ import std.exception : assumeUnique;
 import std.meta;
 import std.regex;
 import std.functional;
+import std.traits;
 
 struct BookRange {
   string firstBook;
@@ -575,7 +576,7 @@ void main(string[] args) {
 
   // Extract Date Row
   DateRowSpec dateRow = csvReader!DateRowSpec(text[2], '\t').front;
-  
+
   // Process the lines we want into CSV ranges
   auto sectionRecordsRange = csvReader!SectionSpec(text[4 .. $ - 2].join("\n"), null, '\t');
 
@@ -584,12 +585,14 @@ void main(string[] args) {
 
   // Turn ranges into arrays
   SectionSpec[] sectionRecords = sectionRecordsRange.array();
-  ulong activeCount = sectionRecords.filter!isActive.count();
 
   if (daysRead.length == 0)
     daysRead ~= 1;
-  if (daysRead.length < activeCount)
-    daysRead ~= daysRead[$ - 1].repeat(activeCount - daysRead.length).array();
+
+  if (daysRead.length < sectionRecords.length)
+    daysRead ~= daysRead[$ - 1].repeat(sectionRecords.length - daysRead.length).array();
+  else if (daysRead.length > sectionRecords.length)
+    daysRead.length = sectionRecords.length;
 
   // Get today's date
   LabelledDate todaysDate = Clock.currTime.LabelledDate(dateRow.lastModDate.label);
@@ -600,10 +603,10 @@ void main(string[] args) {
   string tableResetMsg = "";
   int daysElapsed = 0;
 
-  if (dateRow.lastModDate < dateRow.startDate) {
+  with(dateRow) if (lastModDate < startDate) {
     daysElapsed++;
     tableResetMsg ~= "Table reset; ";
-    dateRow.lastModDate.date = dateRow.startDate.date;
+    lastModDate.date = startDate.date;
   }
 
   daysElapsed += (todaysDate - dateRow.lastModDate).total!"days"();
@@ -611,9 +614,7 @@ void main(string[] args) {
   ReadingSection[string] sectionsByName = getSectionsFromFile("readingSections.sdl");
 
   // Update table with days read
-  lockstep(sectionRecords.filter!isActive(), sectionRecords.map!(r => sectionsByName[r.section])(), daysRead)
-    .each!updateRecord();
-  lockstep(sectionRecords.filter!(not!isActive)(), sectionRecords.map!(r => sectionsByName[r.section])(), (0).repeat(sectionRecords.length - activeCount))
+  lockstep(sectionRecords, sectionRecords.map!(r => sectionsByName[r.section])(), daysRead)
     .each!updateRecord();
 
   // Update last-modified date
@@ -632,11 +633,6 @@ void main(string[] args) {
 
 // The return type of this function is void delegate(ref SectionSpec, ReadingSection, int), but auto is more readable.
 auto updateRecordInit(LabelledDate lastModDate, LabelledDate startDate, LabelledDate endDate, LabelledDate todaysDate) {
-  bool reset = lastModDate < startDate;
-
-  if (reset)
-    lastModDate.date = startDate.date;
-
   // Initialize the day offsets we'll use to do our calculations
   int totalDays = ((endDate - startDate).total!"days"() + 1).to!int();
   auto limitDay = (int day) => day > totalDays ? totalDays : day;
@@ -652,7 +648,7 @@ auto updateRecordInit(LabelledDate lastModDate, LabelledDate startDate, Labelled
 
     int lastCurDay = lastDay - daysBehind;
 
-    if (reset)
+    if (lastModDate < startDate)
       lastCurDay = 0;
     else if (lastCurDay + daysRead > totalDays)
       daysRead = totalDays - lastCurDay;
@@ -695,9 +691,3 @@ ReadingSection[string] getSectionsFromFile(string filename) {
     .assocArray();
 }
 
-bool isActive(SectionSpec record) {
-  int totalChapters = record.progress.multiplicity * record.progress.totalChapters;
-  int chaptersRead = (record.progress.readThrough - 1) * record.progress.totalChapters + record.progress.chaptersRead;
-
-  return (chaptersRead < totalChapters);
-}
