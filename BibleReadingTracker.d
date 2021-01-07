@@ -552,6 +552,7 @@ static Book[] books = [
 ];
 
 immutable int[string] idByBook;
+ReturnType!limitDayInit limit;
 
 shared static this() {
   auto temp = iota!int(0, books.length.to!int())
@@ -632,14 +633,14 @@ void main(string[] args) {
 }
 
 // The return type of this function is void delegate(ref SectionSpec, ReadingSection, int), but auto is more readable.
-auto updateRecordInit(LabelledDate lastModDate, LabelledDate startDate, LabelledDate endDate, LabelledDate todaysDate) {
+auto updateRecordInit(DateRowSpec dateRow, LabelledDate todaysDate) {
   // Initialize the day offsets we'll use to do our calculations
   int totalDays = ((endDate - startDate).total!"days"() + 1).to!int();
-  auto limitDay = (int day) => day > totalDays ? totalDays : day;
+  limit = limitDayInit(totalDays);
 
-  int lastDay = limitDay(((lastModDate - startDate).total!"days"() + 1).to!int());
-  int today = limitDay(((todaysDate - startDate).total!"days"() + 1).to!int());
-  int tomorrow = limitDay(today + 1);
+  int lastDay = ((lastModDate - startDate).total!"days"() + 1).to!int.limit();
+  int today = ((todaysDate - startDate).total!"days"() + 1).to!int.limit();
+  int tomorrow = (today + 1).limit();
   
   void updateRecord(ref SectionSpec record, ReadingSection section, int daysRead) {
     int multiplicity = record.progress.multiplicity;
@@ -653,8 +654,8 @@ auto updateRecordInit(LabelledDate lastModDate, LabelledDate startDate, Labelled
     else if (lastCurDay + daysRead > totalDays)
       daysRead = totalDays - lastCurDay;
 
-    int currentDay = limitDay((lastCurDay + daysRead));
-    int nextDay = limitDay((currentDay + 1)); // handle chaptersToRead issue here by limiting nextDay depending on totalDays
+    int currentDay = (lastCurDay + daysRead).limit();
+    int nextDay = (currentDay + 1).limit(); // handle chaptersToRead issue here by limiting nextDay depending on totalDays
 
     Chapter lastCurChapter = chapterByDay[lastCurDay];
     Chapter curChapter = chapterByDay[currentDay];
@@ -691,3 +692,8 @@ ReadingSection[string] getSectionsFromFile(string filename) {
     .assocArray();
 }
 
+auto limitDayInit(int totalDays) {
+  return delegate(int day) {
+    return day < totalDays ? day : totalDays;
+  };
+}
