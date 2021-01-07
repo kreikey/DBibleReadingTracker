@@ -633,7 +633,7 @@ void main(string[] args) {
 }
 
 // The return type of this function is void delegate(ref SectionSpec, ReadingSection, int), but auto is more readable.
-auto updateRecordInit(DateRowSpec dateRow, LabelledDate todaysDate) {
+auto updateRecordInit(LabelledDate lastModDate, LabelledDate startDate, LabelledDate endDate, LabelledDate todaysDate) {
   // Initialize the day offsets we'll use to do our calculations
   int totalDays = ((endDate - startDate).total!"days"() + 1).to!int();
   limit = limitDayInit(totalDays);
