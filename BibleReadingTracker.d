@@ -37,7 +37,7 @@ struct BookRange {
           throw new RangeError("BibleReadingTracker.d");
 
         frontID++;
-     }
+      }
 
       int front() @property {
         return frontID;
