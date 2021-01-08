@@ -83,8 +83,8 @@ struct BookRange {
 }
 unittest {
   auto r = BookRange("Genesis", "Revelation");
-  assert(isInputRange!typeof(r.byID())());
-  assert(isInputRange!typeof(r.byBook())());
+  assert(isInputRange!(typeof(r.byID())));
+  assert(isInputRange!(typeof(r.byBook())));
 }
 
 struct ChaptersDays {
@@ -454,7 +454,7 @@ unittest {
   auto r = BookRange("Genesis", "Revelation");
   auto s = ReadingSection([r]);
   auto bd = s.byDayEdge(365, 1);
-  assert(isRandomAccessRange!typeof(bd)());
+  assert(isRandomAccessRange!(typeof(bd)));
   assert(bd[$-1].name == "The End");
   assert(bd[0].name == "Genesis 1");
   bd.popFront();
@@ -464,7 +464,7 @@ unittest {
   assert(bd[0].name == "Genesis 4");
   assert(bd[$-1].name == "Revelation 20");
   auto bc = s.byChapter();
-  assert(isRandomAccessRange!typeof(bc)());
+  assert(isRandomAccessRange!(typeof(bc)));
   assert(bc[0] == "Genesis 1");
   assert(bc.front == "Genesis 1");
   assert(bc[$-1] == "Revelation 22");
